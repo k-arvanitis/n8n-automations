@@ -1,4 +1,4 @@
-# 01 — Lead Intake & AI Scorer
+# 01 - Lead Intake & AI Scorer
 
 Automated lead capture pipeline built with n8n and OpenAI. Receives leads from a web form, scores them with GPT-4o-mini (grade A/B/C), routes hot leads to Gmail + Telegram instantly, stores cold leads in Google Sheets, and sends a daily HTML digest at 6pm.
 
