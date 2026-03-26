@@ -1,0 +1,684 @@
+{
+  "name": "Lead Intake & AI Scorer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-intake",
+        "options": {
+          "rawBody": false,
+          "responseData": "{ \"status\": \"ok\", \"message\": \"Lead received\" }"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        160
+      ],
+      "id": "b71ce136-1a20-4b83-8ad5-7f44adc70e50",
+      "name": "Receive Lead",
+      "webhookId": "lead-intake-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = item.json.body || item.json;\n  const name = (data.name || '').trim();\n  const email = (data.email || '').trim().toLowerCase();\n  const source = (data.source || 'unknown').trim();\n  const message = (data.message || '').trim();\n  const company = (data.company || '').trim();\n  const timestamp = new Date().toISOString();\n\n  if (!name || !email) {\n    throw new Error('Missing required fields: name or email');\n  }\n\n  return {\n    json: { timestamp, name, email, source, message, company }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        160
+      ],
+      "id": "85a145e0-798f-4c26-97fa-b45a229da7d1",
+      "name": "Normalize Lead"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a lead scoring assistant. Return ONLY a valid JSON object, no markdown, no explanation.\nRules — follow strictly:\n- Grade C ALWAYS if: email contains \"spam\", \"promo\", \"cheap\", \"deals\", \"bot\", or if message contains \"buy\", \"click here\", \"licenses\", \"guaranteed\", \"software licenses\", or if message is under 10 words with no specific need\n- Grade A ONLY if: message explicitly mentions a budget amount AND a timeline AND a specific business need\n- Grade B: everything else — general interest, vague inquiries, questions without budget or timeline\nReturn exactly this structure with your actual assessment:\n{\"grade\": \"GRADE_HERE\", \"reason\": \"one sentence\", \"intent\": \"INTENT_HERE\"}\nintent must be: buy, info, or spam\ngrade must be: A, B, or C\n\nReturn only valid JSON with keys: grade, reason, intent.",
+              "role": "system"
+            },
+            {
+              "content": "=Score this lead:\nName: {{ $json.name }}\nEmail: {{ $json.email }}\nCompany: {{ $json.company }}\nSource: {{ $json.source }}\nMessage: {{ $json.message }}"
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.7,
+      "position": [
+        400,
+        160
+      ],
+      "id": "df84484e-d432-44fe-af1d-c2f60bdeae95",
+      "name": "Score Lead with AI",
+      "credentials": {
+        "openAiApi": {
+          "id": "01zeIhp0RTXEhm8K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = items[0].json;\nlet parsed;\ntry {\n  parsed = typeof item.message === 'string' ? JSON.parse(item.message) : item.message;\n} catch(e) {\n  parsed = { grade: 'B', reason: 'Could not parse AI response', intent: 'info' };\n}\n\nreturn [{\n  json: {\n    ...items[0].json,\n    grade: parsed.grade || 'B',\n    reason: parsed.reason || '',\n    intent: parsed.intent || 'info'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        160
+      ],
+      "id": "723c05aa-932e-4193-a5e3-311d93766b2d",
+      "name": "Parse AI Score"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ",
+          "mode": "list",
+          "cachedResultName": "Lead Intake",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "All Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Normalize Lead').item.json.timestamp }}",
+            "Name": "={{ $('Normalize Lead').item.json.name }}",
+            "Email": "={{ $('Normalize Lead').item.json.email }}",
+            "Source": "={{ $('Normalize Lead').item.json.source }}",
+            "Company": "={{ $('Normalize Lead').item.json.company }}",
+            "Message": "={{ $('Normalize Lead').item.json.message }}",
+            "Grade": "={{ $('Parse AI Score').item.json.message.content.grade }}",
+            "Reason": "={{ $('Parse AI Score').item.json.message.content.reason }}",
+            "Intent": "={{ $('Parse AI Score').item.json.message.content.intent }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Grade",
+              "displayName": "Grade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intent",
+              "displayName": "Intent",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1456,
+        160
+      ],
+      "id": "c56d41b1-2be2-4404-b56e-fa7014622aa9",
+      "name": "Log All Leads",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MJa1dj6i8PqbyXHM",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Parse AI Score').item.json.message.content.grade }}",
+              "rightValue": "A",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              },
+              "id": "4609f3bb-3df0-4a51-8a34-46907006f41d"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1728,
+        160
+      ],
+      "id": "cc0368d7-b2ec-40ed-a526-906e63a7f297",
+      "name": "Grade A?"
+    },
+    {
+      "parameters": {
+        "sendTo": "kostas7arv@gmail.com",
+        "subject": "=🔥 HOT Lead (Grade A) – {{ $json.Name }} from {{ $json.Source }}",
+        "message": "=<h2>New Grade A Lead</h2>\n<table style='font-family:Arial,sans-serif;border-collapse:collapse'>\n<tr><td style='padding:6px 12px;font-weight:bold'>Name</td><td style='padding:6px 12px'>{{ $json.Name }}</td></tr>\n<tr style='background:#f5f5f5'><td style='padding:6px 12px;font-weight:bold'>Email</td><td style='padding:6px 12px'>{{ $json.Email }}</td></tr>\n<tr><td style='padding:6px 12px;font-weight:bold'>Company</td><td style='padding:6px 12px'>{{ $json.Company }}</td></tr>\n<tr style='background:#f5f5f5'><td style='padding:6px 12px;font-weight:bold'>Source</td><td style='padding:6px 12px'>{{ $json.Source }}</td></tr>\n<tr><td style='padding:6px 12px;font-weight:bold'>Message</td><td style='padding:6px 12px'>{{ $json.Message }}</td></tr>\n<tr style='background:#f5f5f5'><td style='padding:6px 12px;font-weight:bold'>AI Reason</td><td style='padding:6px 12px'>{{ $json.Reason }}</td></tr>\n</table>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1952,
+        32
+      ],
+      "id": "1f270906-f9d3-4269-8df0-b3ed7329c5cc",
+      "name": "Email Hot Lead Alert",
+      "webhookId": "b4b63aaa-d88d-45fe-a42e-4d230b7f9d3a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PNCAGrJQiLdVJ7yD",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "6079441907",
+        "text": "=🔥 HOT Lead - Grade A\n\n👤 Name: {{ $('Normalize Lead').item.json.name }}\n📧 Email: {{ $('Normalize Lead').item.json.email }}\n🏢 Company: {{ $('Normalize Lead').item.json.company }}\n📌 Source: {{ $('Normalize Lead').item.json.source }}\n💬 Message: {{ $('Normalize Lead').item.json.message }}\n\n🤖 AI Score: {{ $json.Reason }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "parse_mode": "Markdown"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1952,
+        160
+      ],
+      "id": "4dc994f9-198a-47d4-902e-df467e3127f0",
+      "name": "Telegram Hot Lead Alert",
+      "webhookId": "f204abb4-4ee3-4ea5-84f0-066a9fa4d43a",
+      "credentials": {
+        "telegramApi": {
+          "id": "QSdjAIyiWqvUKVpw",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ",
+          "mode": "list",
+          "cachedResultName": "Lead Intake",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1088342581,
+          "mode": "list",
+          "cachedResultName": "Cold Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit#gid=1088342581"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $('Log All Leads').item.json.Timestamp }}",
+            "Name": "={{ $('Log All Leads').item.json.Name }}",
+            "Email": "={{ $('Log All Leads').item.json.Email }}",
+            "Company": "={{ $('Log All Leads').item.json.Company }}",
+            "Message": "={{ $('Log All Leads').item.json.Message }}",
+            "Source": "={{ $('Log All Leads').item.json.Source }}",
+            "Grade": "={{ $('Log All Leads').item.json.Grade }}",
+            "Reason": "={{ $('Log All Leads').item.json.Reason }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Source",
+              "displayName": "Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Grade",
+              "displayName": "Grade",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1952,
+        320
+      ],
+      "id": "063acc3b-4ba4-4b02-a92b-b98e4a75f38b",
+      "name": "Store Cold Lead",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Gv2nOsdGrmZVeN9H",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Lead Intake & AI Scorer\nWebhook → Normalize → OpenAI Score → Route\n\nGrade A → Gmail alert + Telegram\nGrade B/C → Cold Leads sheet",
+        "height": 196,
+        "width": 624
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -96
+      ],
+      "id": "7065d9ad-a708-47dc-9185-efbc5b195504",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ",
+          "mode": "list",
+          "cachedResultName": "Lead Intake",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "All Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Email",
+              "lookupValue": "={{ $('Normalize Lead').item.json.email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        960,
+        160
+      ],
+      "id": "0de28a70-ed73-4089-b6f7-2bbdf9ae6918",
+      "name": "Get row(s) in sheet",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MJa1dj6i8PqbyXHM",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a004489d-9e3d-48f1-98ae-6ccbb0900129",
+              "leftValue": "={{ $input.first().json.Email }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1168,
+        160
+      ],
+      "id": "b4902cae-8acb-4285-baa8-dccd8add2be4",
+      "name": "If"
+    }
+  ],
+  "pinData": {
+    "Receive Lead": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "user-agent": "curl/8.5.0",
+            "accept": "*/*",
+            "content-type": "application/json",
+            "content-length": "162"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "name": "Spam Bot",
+            "email": "promo999@cheapdeals.ru",
+            "company": "",
+            "source": "Other",
+            "message": "Buy cheap software licenses!! Best deals click here now!!!"
+          },
+          "webhookUrl": "http://localhost:5678/webhook-test/lead-intake",
+          "executionMode": "test"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "Score Lead with AI": [
+      {
+        "json": {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": {
+              "grade": "C",
+              "reason": "Email contains spam keywords and message promotes cheap software licenses.",
+              "intent": "spam"
+            },
+            "refusal": null,
+            "annotations": []
+          },
+          "logprobs": null,
+          "finish_reason": "stop"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Receive Lead": {
+      "main": [
+        [
+          {
+            "node": "Normalize Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Lead": {
+      "main": [
+        [
+          {
+            "node": "Score Lead with AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Score Lead with AI": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Score": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log All Leads": {
+      "main": [
+        [
+          {
+            "node": "Grade A?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grade A?": {
+      "main": [
+        [
+          {
+            "node": "Email Hot Lead Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram Hot Lead Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Store Cold Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Log All Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "676f5a17-379a-4770-a725-a94857ba6a42",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "oQEwBVg01bkqKH7X",
+  "tags": []
+}

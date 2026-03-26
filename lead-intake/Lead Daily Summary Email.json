@@ -1,0 +1,159 @@
+{
+  "name": "Lead Daily Summary Email",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        144
+      ],
+      "id": "f14f034f-45f0-4b4d-95a6-7de961a12ae9",
+      "name": "Daily at 6pm (Mon–Fri)"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ",
+          "mode": "list",
+          "cachedResultName": "Lead Intake",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "All Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ishuva4opzQCBWHkiKqX66WAZd0RaJcZ_cc45Fd2CUQ/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        144
+      ],
+      "id": "a1cbd177-be41-49b5-9db3-15ad3f2a69d5",
+      "name": "Read All Leads",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "MJa1dj6i8PqbyXHM",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = new Date();\ntoday.setHours(0, 0, 0, 0);\n\nconst todayLeads = items.filter(item => {\n  const ts = new Date(item.json.Timestamp);\n  return ts >= today;\n});\n\nconst total = todayLeads.length;\nconst gradeA = todayLeads.filter(i => i.json.Grade === 'A').length;\nconst gradeB = todayLeads.filter(i => i.json.Grade === 'B').length;\nconst gradeC = todayLeads.filter(i => i.json.Grade === 'C').length;\n\nconst sources = {};\ntodayLeads.forEach(i => {\n  const s = i.json.Source || 'unknown';\n  sources[s] = (sources[s] || 0) + 1;\n});\n\nconst sourceRows = Object.entries(sources)\n  .sort((a,b) => b[1]-a[1])\n  .map(([s,c]) => `<tr><td style='padding:5px 12px'>${s}</td><td style='padding:5px 12px;text-align:center'>${c}</td></tr>`)\n  .join('');\n\nconst leadRows = todayLeads.map(i => {\n  const gradeColor = i.json.Grade === 'A' ? '#d4edda' : i.json.Grade === 'B' ? '#fff3cd' : '#f8d7da';\n  return `<tr style='background:${gradeColor}'>\n    <td style='padding:5px 10px'>${i.json.Name}</td>\n    <td style='padding:5px 10px'>${i.json.Email}</td>\n    <td style='padding:5px 10px'>${i.json.Source}</td>\n    <td style='padding:5px 10px;text-align:center'><b>${i.json.Grade}</b></td>\n    <td style='padding:5px 10px;font-size:12px'>${i.json.Reason}</td>\n  </tr>`;\n}).join('');\n\nconst dateStr = new Date().toLocaleDateString('en-GB', { weekday:'long', year:'numeric', month:'long', day:'numeric' });\n\nconst html = `\n<div style='font-family:Arial,sans-serif;max-width:700px'>\n  <h2 style='color:#1a1a2e'>Lead Summary — ${dateStr}</h2>\n  <div style='display:flex;gap:16px;margin-bottom:24px'>\n    <div style='background:#f0f4ff;padding:16px 24px;border-radius:8px;text-align:center'>\n      <div style='font-size:28px;font-weight:bold'>${total}</div>\n      <div style='color:#666;font-size:13px'>Total leads</div>\n    </div>\n    <div style='background:#d4edda;padding:16px 24px;border-radius:8px;text-align:center'>\n      <div style='font-size:28px;font-weight:bold;color:#155724'>${gradeA}</div>\n      <div style='color:#155724;font-size:13px'>Grade A (hot)</div>\n    </div>\n    <div style='background:#fff3cd;padding:16px 24px;border-radius:8px;text-align:center'>\n      <div style='font-size:28px;font-weight:bold;color:#856404'>${gradeB}</div>\n      <div style='color:#856404;font-size:13px'>Grade B (warm)</div>\n    </div>\n    <div style='background:#f8d7da;padding:16px 24px;border-radius:8px;text-align:center'>\n      <div style='font-size:28px;font-weight:bold;color:#721c24'>${gradeC}</div>\n      <div style='color:#721c24;font-size:13px'>Grade C (cold)</div>\n    </div>\n  </div>\n\n  <h3>By source</h3>\n  <table style='border-collapse:collapse;width:100%;margin-bottom:24px'>\n    <tr style='background:#eee'><th style='padding:6px 12px;text-align:left'>Source</th><th style='padding:6px 12px'>Count</th></tr>\n    ${sourceRows || '<tr><td colspan=2 style=\"padding:8px 12px;color:#999\">No leads today</td></tr>'}\n  </table>\n\n  <h3>All leads today</h3>\n  <table style='border-collapse:collapse;width:100%;font-size:13px'>\n    <tr style='background:#333;color:#fff'>\n      <th style='padding:6px 10px;text-align:left'>Name</th>\n      <th style='padding:6px 10px;text-align:left'>Email</th>\n      <th style='padding:6px 10px;text-align:left'>Source</th>\n      <th style='padding:6px 10px'>Grade</th>\n      <th style='padding:6px 10px;text-align:left'>AI Reason</th>\n    </tr>\n    ${leadRows || '<tr><td colspan=5 style=\"padding:10px;color:#999\">No leads today</td></tr>'}\n  </table>\n</div>`;\n\nreturn [{ json: { html, total, gradeA, gradeB, gradeC, dateStr } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        144
+      ],
+      "id": "9da7de61-5d44-4543-8f57-eb0fc6706897",
+      "name": "Build Summary HTML"
+    },
+    {
+      "parameters": {
+        "sendTo": "kostas7arv@gmail.com",
+        "subject": "=📊 Lead Summary – {{ $json.dateStr }} ({{ $json.total }} leads, {{ $json.gradeA }} hot)",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        144
+      ],
+      "id": "a628e6cb-65bf-4f52-aaeb-5655f63d92ce",
+      "name": "Send Summary Email",
+      "webhookId": "09e69c4a-ba51-47cf-a887-41e2309dee55",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "PNCAGrJQiLdVJ7yD",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Daily Lead Summary\nRuns Mon–Fri at 6pm.\nReads All Leads sheet → filters today → builds HTML → sends digest.",
+        "height": 144,
+        "width": 528
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "0b5df196-ddf5-4b6b-a1aa-f9f4913f9046",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily at 6pm (Mon–Fri)": {
+      "main": [
+        [
+          {
+            "node": "Read All Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read All Leads": {
+      "main": [
+        [
+          {
+            "node": "Build Summary HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Summary HTML": {
+      "main": [
+        [
+          {
+            "node": "Send Summary Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "25926b74-d386-42f0-8b4a-74eac98b1e8a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "KrdSRRbGBFacWGBy",
+  "tags": []
+}
