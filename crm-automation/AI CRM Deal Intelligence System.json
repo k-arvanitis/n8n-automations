@@ -1,0 +1,680 @@
+{
+  "name": "AI CRM Deal Intelligence System1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-lead-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "9497aee4-66db-4874-80d1-68ddc0957bde",
+      "name": "Lead Intake Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        112
+      ],
+      "webhookId": "crm-lead-intake"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.email }}",
+              "operation": "contains",
+              "value2": "demo"
+            }
+          ]
+        }
+      },
+      "id": "07a30cb7-bbb7-4eb2-8a51-ed24a638c3c3",
+      "name": "Is Demo Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "name",
+              "value": "={{ $('Lead Intake Webhook').item.json.body.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $('Lead Intake Webhook').item.json.body.email }}"
+            },
+            {
+              "name": "company_size",
+              "value": "180 employees"
+            },
+            {
+              "name": "industry",
+              "value": "DevOps SaaS"
+            },
+            {
+              "name": "location",
+              "value": "Austin, TX"
+            },
+            {
+              "name": "revenue",
+              "value": "$8M ARR"
+            },
+            {
+              "name": "technologies",
+              "value": "AWS, Kubernetes, Datadog"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "31b0114e-69a6-4063-b219-d0e81bfd7465",
+      "name": "Mock Enrichment Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/v1/people/match",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Cache-Control",
+              "value": "no-cache"
+            },
+            {
+              "name": "X-Api-Key",
+              "value": "YOUR_APOLLO_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "name": "reveal_personal_emails",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "518fbe15-a98e-4b32-9573-99d015e159ee",
+      "name": "Apollo Enrichment",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        0,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "name",
+              "value": "={{ $json.body.name || $json.person?.name || 'Unknown' }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.body.email }}"
+            },
+            {
+              "name": "job_title",
+              "value": "={{ $json.person?.title || 'Unknown' }}"
+            },
+            {
+              "name": "company",
+              "value": "={{ $json.person?.organization?.name || 'Unknown' }}"
+            },
+            {
+              "name": "company_size",
+              "value": "={{ $json.person?.organization?.estimated_num_employees || 'Unknown' }}"
+            },
+            {
+              "name": "industry",
+              "value": "={{ $json.person?.organization?.industry || 'Unknown' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2748612b-cc2c-4e76-84de-63b5519c5613",
+      "name": "Format Apollo Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        224,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a senior sales qualification AI for a B2B SaaS company. Your ideal customer profile (ICP) is: companies with 50-500 employees, SaaS or tech industry, decision-makers at VP level or above, US or EU based.\n\nScore this lead from 0 to 100 based on ICP fit. Respond ONLY in this exact JSON format, nothing else:\n{\n  \"score\": <number 0-100>,\n  \"grade\": \"<Hot/Warm/Cold>\",\n  \"reason\": \"<2 sentence explanation>\",\n  \"recommended_action\": \"<one of: Fast-track to demo / Standard sequence / Nurture only / Disqualify>\",\n  \"key_signal\": \"<the single most important thing about this lead>\"\n}",
+              "role": "system"
+            },
+            {
+              "content": "=Score this lead:\n\nName: {{ $json.name }}\nEmail: {{ $json.email }}\nJob Title: {{ $json.body.job_title }}\nCompany: {{ $json.body.company }}\nCompany Size: {{ $json.company_size }}\nIndustry: {{ $json.industry }}\n\nReturn only the JSON, no extra text."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c94d38f4-6084-4b4d-b8dd-b835e23958c1",
+      "name": "AI Lead Scoring",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [
+        448,
+        112
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "01zeIhp0RTXEhm8K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.message.content;\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch(e) {\n  const match = raw.match(/\\{[\\s\\S]*\\}/);\n  parsed = match ? JSON.parse(match[0]) : { score: 50, grade: 'Warm', reason: 'Could not parse AI response.', recommended_action: 'Standard sequence', key_signal: 'N/A' };\n}\n\nconst enriched = $('Mock Enrichment Data').first()?.json || $('Format Apollo Data').first()?.json || {};\nconst intake = $('Lead Intake Webhook').first().json.body;\n\nreturn [{\n  json: {\n    name: enriched.name || intake.name,\n    email: enriched.email || intake.email,\n    job_title: enriched.job_title || intake.job_title,\n    company: enriched.company || intake.company,\n    company_size: enriched.company_size || '',\n    industry: enriched.industry || '',\n    location: enriched.location || '',\n    ai_score: parsed.score,\n    ai_grade: parsed.grade,\n    ai_reason: parsed.reason,\n    ai_action: parsed.recommended_action,\n    ai_signal: parsed.key_signal,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "0dfbf1c9-8498-4af2-8a32-f8da0aa3e14f",
+      "name": "Parse AI Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#crm-leads",
+          "mode": "name"
+        },
+        "messageType": "block",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*New Lead Requires Review*\\n\\n*Name:* {{ $json.name }}\\n*Email:* {{ $json.email }}\\n*Title:* {{ $json.job_title }}\\n*Company:* {{ $json.company }}\\n*Score:* {{ $json.ai_score }}/100 — {{ $json.ai_grade }}\\n*Recommended:* {{ $json.ai_action }}\\n*Reason:* {{ $json.ai_reason }}\"\n      }\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Approve\", \"emoji\": true },\n          \"style\": \"primary\",\n          \"value\": \"approve\",\n          \"action_id\": \"approve_lead\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Reject\", \"emoji\": true },\n          \"style\": \"danger\",\n          \"value\": \"reject\",\n          \"action_id\": \"reject_lead\"\n        }\n      ]\n    }\n  ]\n}",
+        "text": "==New lead requires approval — {{ $json.name }}|{{ $json.email }}|{{ $json.job_title }}|{{ $json.company }}|{{ $json.industry }}|{{ $json.company_size }}|{{ $json.ai_score }}|{{ $json.ai_grade }}|{{ $json.ai_action }}|{{ $json.ai_reason }}|{{ $json.ai_signal }}",
+        "otherOptions": {}
+      },
+      "id": "28f08f76-ab36-4faa-9c04-9cd6daef9cc8",
+      "name": "Slack HITL Approval",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        112
+      ],
+      "webhookId": "a8980662-0571-4b1c-b671-363cfed8ecba",
+      "credentials": {
+        "slackApi": {
+          "id": "sGgqtvR4OklwZkwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hitl-resume",
+        "options": {}
+      },
+      "id": "8ee67279-b0ae-4793-a2c9-705053016b01",
+      "name": "Approval Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        592
+      ],
+      "webhookId": "94749cc3-315f-4ca5-86c8-832b9e266a88"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.body.payload;\nconst payload = JSON.parse(raw);\nconst action = payload.actions[0].value;\n\nconst text = payload.message.text || '';\nconst dataLine = text.split(' — ')[1] || '';\nconst parts = dataLine.trim().split('|');\n\nreturn [{\n  json: {\n    action,\n    name: parts[0] || '',\n    email: parts[1] || '',\n    job_title: parts[2] || '',\n    company: parts[3] || '',\n    industry: parts[4] || '',\n    company_size: parts[5] || '',\n    ai_score: parseInt(parts[6]) || 0,\n    ai_grade: parts[7] || '',\n    ai_action: parts[8] || '',\n    ai_reason: parts[9] || '',\n    ai_signal: parts[10] || ''\n  }\n}];"
+      },
+      "id": "76e18c98-1c0f-4c61-bb0e-a31930af75c7",
+      "name": "Parse Slack Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "approve"
+            }
+          ]
+        }
+      },
+      "id": "77277249-a078-4d3a-8819-e96c8806f1c6",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        16,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "email": "={{ $json.email }}",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "firstname",
+                "value": "={{ $json.name.split(' ')[0] }}"
+              },
+              {
+                "property": "lastname",
+                "value": "={{ $json.name.split(' ').slice(1).join(' ') }}"
+              },
+              {
+                "property": "email",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "property": "jobtitle",
+                "value": "={{ $json.job_title }}"
+              },
+              {
+                "property": "company",
+                "value": "={{ $json.company }}"
+              },
+              {
+                "property": "industry",
+                "value": "={{ $json.industry }}"
+              },
+              {
+                "property": "hs_lead_status",
+                "value": "NEW"
+              }
+            ]
+          }
+        },
+        "options": {}
+      },
+      "id": "10255ac3-28b7-4183-82cc-b2cd17fcf47c",
+      "name": "Create HubSpot Contact",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        256,
+        480
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "9Usq1bjoGTJ71h78",
+          "name": "HubSpot account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "resource": "deal",
+        "stage": "qualifiedtobuy",
+        "additionalFields": {
+          "customPropertiesUi": {
+            "customPropertiesValues": [
+              {
+                "property": "=closedate",
+                "value": "={{ Date.now() + (30 * 24 * 60 * 60 * 1000) }}"
+              },
+              {
+                "property": "=amount",
+                "value": "0"
+              },
+              {
+                "property": "=dealname",
+                "value": "={{ $('Parse Slack Payload').first().json.company }} — Inbound Lead"
+              },
+              {
+                "property": "=pipeline",
+                "value": "default"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3e6939f7-6d1f-46d0-83a0-80d42605349c",
+      "name": "Create HubSpot Deal",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        464,
+        480
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "9Usq1bjoGTJ71h78",
+          "name": "HubSpot account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a senior B2B sales development rep. Write a short personalised cold outreach email. Rules: max 5 sentences, no fluff, reference their specific role and company, end with ONE clear question. Sound human, not like a template.",
+              "role": "system"
+            },
+            {
+              "content": "=Write an outreach email for:\n\nName: {{ $('Parse Slack Payload').first().json.name }}\nTitle: {{ $('Parse Slack Payload').first().json.job_title }}\nCompany: {{ $('Parse Slack Payload').first().json.company }}\nIndustry: {{ $('Parse Slack Payload').first().json.industry }}\nSize: {{ $('Parse Slack Payload').first().json.company_size }}\nKey insight: {{ $('Parse Slack Payload').first().json.ai_signal }}\n\nSubject line first, then the email. Format:\nSubject: ...\n\n[email body]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "272b5c27-8664-422b-9cb0-60fadb90aff5",
+      "name": "Draft Outreach Email",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [
+        688,
+        480
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "01zeIhp0RTXEhm8K",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "value": "#crm-leads",
+          "__rl": true,
+          "mode": "name"
+        },
+        "text": "=✅ *{{ $('Parse Slack Payload').first().json.name }}* pushed to HubSpot\n\n*Company:* {{ $('Parse Slack Payload').first().json.company }}\n*Score:* {{ $('Parse Slack Payload').first().json.ai_score }}/100 — {{ $('Parse Slack Payload').first().json.ai_grade }}\n*Deal:* Qualified to Buy\n\n---\n*Outreach email ready to send:*\n\n{{ $('Draft Outreach Email').first().json.message.content }}",
+        "otherOptions": {}
+      },
+      "id": "e9f28209-114c-4a30-8a21-865f0840a178",
+      "name": "Slack Success Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        992,
+        480
+      ],
+      "webhookId": "ac235164-e602-43f4-bce7-389ab79009e3",
+      "credentials": {
+        "slackApi": {
+          "id": "sGgqtvR4OklwZkwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "value": "#crm-leads",
+          "__rl": true,
+          "mode": "name"
+        },
+        "text": "=❌ *Lead rejected and archived.*\n\n*Lead:* {{ $json.name }} ({{ $json.email }})\n*AI Score was:* {{ $json.ai_score }}/100\n\nNo CRM record created.",
+        "otherOptions": {}
+      },
+      "id": "48dc97a6-4b61-43bf-aee1-9fe5333eb464",
+      "name": "Slack Reject Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [
+        256,
+        704
+      ],
+      "webhookId": "c7bde64a-94ce-4921-bdde-9e3ba0fe3d84",
+      "credentials": {
+        "slackApi": {
+          "id": "sGgqtvR4OklwZkwy",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"received\", \"message\": \"Lead is being processed\" }",
+        "options": {}
+      },
+      "id": "14b4baff-b3bd-4785-9a31-c2d698836996",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Lead Intake Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is Demo Lead?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Demo Lead?": {
+      "main": [
+        [
+          {
+            "node": "Mock Enrichment Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Apollo Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Enrichment Data": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apollo Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Format Apollo Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Apollo Data": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Scoring",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Scoring": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Score": {
+      "main": [
+        [
+          {
+            "node": "Slack HITL Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Slack Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Slack Payload": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Create HubSpot Contact",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack Reject Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HubSpot Contact": {
+      "main": [
+        [
+          {
+            "node": "Create HubSpot Deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create HubSpot Deal": {
+      "main": [
+        [
+          {
+            "node": "Draft Outreach Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft Outreach Email": {
+      "main": [
+        [
+          {
+            "node": "Slack Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b2171088-abd8-408d-ad4b-8ca61ea5f44d",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "9h8NV9EocOL6yt7j",
+  "tags": []
+}
