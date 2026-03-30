@@ -7,6 +7,7 @@ A collection of self-hosted n8n workflows for automating business processes with
 | # | Folder | What it does |
 |---|--------|--------------|
 | 01 | [lead-intake](lead-intake/) | Capture leads from a web form, score with GPT-4o-mini, route hot leads to Gmail + Telegram, log all to Google Sheets, daily digest at 6pm |
+| 02 | [crm-automation](crm-automation/) | Enrich and score leads with GPT-4.1-mini, human-in-the-loop Slack approval, auto-create HubSpot contact + deal, draft personalised cold outreach email |
 
 ## Infrastructure
 
