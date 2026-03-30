@@ -1,21 +1,28 @@
 # 01 - Lead Intake & AI Scorer
 
+![n8n](https://img.shields.io/badge/n8n-self--hosted-orange?logo=n8n)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai)
+![Google Sheets](https://img.shields.io/badge/Google%20Sheets-storage-34A853?logo=googlesheets)
+![Gmail](https://img.shields.io/badge/Gmail-alerts-EA4335?logo=gmail)
+![Telegram](https://img.shields.io/badge/Telegram-notifications-26A5E4?logo=telegram)
+![Docker](https://img.shields.io/badge/Docker-self--hosted-2496ED?logo=docker)
+
 Automated lead capture pipeline built with n8n and OpenAI. Receives leads from a web form, scores them with GPT-4o-mini (grade A/B/C), routes hot leads to Gmail + Telegram instantly, stores cold leads in Google Sheets, and sends a daily HTML digest at 6pm.
 
 ## Workflows
 
 | File | Trigger | What it does |
 |------|---------|--------------|
-| `Lead Intake & AI Scorer.json` | Webhook (form submit) | Score → route → notify |
-| `Lead Daily Summary Email.json` | Schedule (6pm Mon–Fri) | Read sheet → build HTML → send digest |
+| `Lead Intake & AI Scorer.json` | Webhook (form submit) | Score -> route -> notify |
+| `Lead Daily Summary Email.json` | Schedule (6pm Mon-Fri) | Read sheet -> build HTML -> send digest |
 
 ## Tech stack
 
 - **n8n** (self-hosted, Docker)
-- **OpenAI** GPT-4o-mini — lead scoring
-- **Google Sheets** — lead storage
-- **Gmail** — hot lead alerts + daily digest
-- **Telegram** — instant hot lead notification
+- **OpenAI** GPT-4o-mini - lead scoring
+- **Google Sheets** - lead storage
+- **Gmail** - hot lead alerts + daily digest
+- **Telegram** - instant hot lead notification
 
 ## Flow
 
@@ -23,7 +30,7 @@ Automated lead capture pipeline built with n8n and OpenAI. Receives leads from a
 Form submit
     │
     ▼
-Webhook → Normalize → OpenAI Score
+Webhook -> Normalize -> OpenAI Score
                             │
                     ┌───────┴────────┐
                  Grade A          Grade B/C
@@ -32,10 +39,10 @@ Webhook → Normalize → OpenAI Score
                     │                │
                     └───────┬────────┘
                             │
-                      Log → All Leads sheet
+                      Log -> All Leads sheet
 
 [6pm daily]
-Schedule → Read All Leads → Build HTML → Send Digest
+Schedule -> Read All Leads -> Build HTML -> Send Digest
 ```
 
 ## Setup
@@ -44,12 +51,12 @@ Schedule → Read All Leads → Build HTML → Send Digest
 
 Create a spreadsheet with two tabs:
 
-**Tab 1 — `All Leads`**
+**Tab 1 - `All Leads`**
 ```
 Timestamp | Name | Email | Company | Source | Message | Grade | Reason | Intent
 ```
 
-**Tab 2 — `Cold Leads`**
+**Tab 2 - `Cold Leads`**
 ```
 Timestamp | Name | Email | Company | Source | Message | Grade | Reason
 ```
@@ -59,7 +66,7 @@ Copy the Sheet ID from the URL:
 
 ### 2. Import workflows
 
-In n8n: **Settings → Import** → select each JSON file separately.
+In n8n: **Settings -> Import** -> select each JSON file separately.
 
 ### 3. Replace placeholders
 
@@ -71,15 +78,15 @@ Search both files for these and replace:
 | `YOUR_EMAIL@gmail.com` | Your Gmail address |
 | `YOUR_TELEGRAM_CHAT_ID` | Your Telegram chat ID |
 
-> **Getting your Telegram chat ID:** Message [@userinfobot](https://t.me/userinfobot) on Telegram — it replies with your chat ID instantly.
+> **Getting your Telegram chat ID:** Message [@userinfobot](https://t.me/userinfobot) on Telegram - it replies with your chat ID instantly.
 
 ### 4. Add credentials in n8n
 
 Each node that connects to an external service needs credentials:
-- **OpenAI node** → add your OpenAI API key
-- **Google Sheets nodes** → connect via Google OAuth
-- **Gmail nodes** → connect via Google OAuth (same account)
-- **Telegram node** → add your Bot Token (create one via [@BotFather](https://t.me/BotFather))
+- **OpenAI node** - add your OpenAI API key
+- **Google Sheets nodes** - connect via Google OAuth
+- **Gmail nodes** - connect via Google OAuth (same account)
+- **Telegram node** - add your Bot Token (create one via [@BotFather](https://t.me/BotFather))
 
 ### 5. Connect the form
 
@@ -91,7 +98,7 @@ const WEBHOOK_URL = 'https://YOUR-N8N-INSTANCE/webhook/lead-intake';
 If running n8n locally, use [ngrok](https://ngrok.com) to expose it:
 ```bash
 ngrok http 5678
-# copy the https URL → paste into WEBHOOK_URL
+# copy the https URL -> paste into WEBHOOK_URL
 ```
 
 ### 6. Activate
@@ -142,5 +149,5 @@ curl -X POST https://YOUR-N8N-INSTANCE/webhook/lead-intake \
 A styled contact form is included in `form/index.html`. Deploy free on GitHub Pages:
 
 1. Push this repo to GitHub
-2. Go to **Settings → Pages → Source → main branch**
+2. Go to **Settings -> Pages -> Source -> main branch**
 3. Your form is live at `https://yourname.github.io/ai-automation-portfolio/01-lead-intake/form`
