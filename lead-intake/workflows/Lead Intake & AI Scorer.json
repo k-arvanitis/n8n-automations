@@ -84,7 +84,7 @@
     },
     {
       "parameters": {
-        "operation": "append",
+        "operation": "appendOrUpdate",
         "documentId": {
           "__rl": true,
           "value": "YOUR_SHEET_ID",
@@ -112,7 +112,9 @@
             "Reason": "={{ $('Parse AI Score').item.json.message.content.reason }}",
             "Intent": "={{ $('Parse AI Score').item.json.message.content.intent }}"
           },
-          "matchingColumns": [],
+          "matchingColumns": [
+            "Email"
+          ],
           "schema": [
             {
               "id": "Timestamp",
@@ -438,82 +440,6 @@
       ],
       "id": "7065d9ad-a708-47dc-9185-efbc5b195504",
       "name": "Sticky Note"
-    },
-    {
-      "parameters": {
-        "documentId": {
-          "__rl": true,
-          "value": "YOUR_SHEET_ID",
-          "mode": "list",
-          "cachedResultName": "Lead Intake",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit?usp=drivesdk"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": "gid=0",
-          "mode": "list",
-          "cachedResultName": "All Leads",
-          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit#gid=0"
-        },
-        "filtersUI": {
-          "values": [
-            {
-              "lookupColumn": "Email",
-              "lookupValue": "={{ $('Normalize Lead').item.json.email }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        960,
-        160
-      ],
-      "id": "0de28a70-ed73-4089-b6f7-2bbdf9ae6918",
-      "name": "Get row(s) in sheet",
-      "alwaysOutputData": true,
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "MJa1dj6i8PqbyXHM",
-          "name": "Google Sheets account 2"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "a004489d-9e3d-48f1-98ae-6ccbb0900129",
-              "leftValue": "={{ $input.first().json.Email }}",
-              "rightValue": 0,
-              "operator": {
-                "type": "string",
-                "operation": "empty",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        1168,
-        160
-      ],
-      "id": "b4902cae-8acb-4285-baa8-dccd8add2be4",
-      "name": "If"
     }
   ],
   "pinData": {
@@ -605,7 +531,7 @@
       "main": [
         [
           {
-            "node": "Get row(s) in sheet",
+            "node": "Log All Leads",
             "type": "main",
             "index": 0
           }
@@ -640,28 +566,6 @@
         [
           {
             "node": "Store Cold Lead",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get row(s) in sheet": {
-      "main": [
-        [
-          {
-            "node": "If",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "If": {
-      "main": [
-        [
-          {
-            "node": "Log All Leads",
             "type": "main",
             "index": 0
           }

@@ -226,5 +226,5 @@ Turn on both workflows in n8n (toggle top right), open `form/index.html` in a br
 
 Built by Konstantinos Arvanitis - AI engineer & automation specialist.
 
-- [LinkedIn](https://www.linkedin.com/in/karvanitis)
+- [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/karvanitis)

@@ -7,7 +7,12 @@
 ![Telegram](https://img.shields.io/badge/Telegram-notifications-26A5E4?logo=telegram)
 ![Docker](https://img.shields.io/badge/Docker-self--hosted-2496ED?logo=docker)
 
-Automated lead capture pipeline built with n8n and OpenAI. Receives leads from a web form, scores them with GPT-4o-mini (grade A/B/C), routes hot leads to Gmail + Telegram instantly, stores cold leads in Google Sheets, and sends a daily HTML digest at 6pm.
+Automated lead capture pipeline built with n8n and OpenAI. Receives leads from a web form, scores them with GPT-4o-mini (grade A/B/C), routes hot leads to Gmail + Telegram instantly, logs every lead to Google Sheets (deduplicated by email — a repeat submission updates the existing row instead of adding a duplicate), and sends a daily HTML digest at 6pm.
+
+> **Why it matters:** hot leads reach a human the moment they arrive — cutting time-to-response
+> from hours to seconds, when a prospect is most likely to convert. The scoring model
+> (GPT-4o-mini) is swappable for any provider n8n supports (Anthropic/Groq/Gemini/Ollama) via
+> its chat-model nodes, so it fits whatever stack or budget a client runs on.
 
 ## Workflows
 
@@ -39,7 +44,7 @@ Webhook -> Normalize -> OpenAI Score
                     │                │
                     └───────┬────────┘
                             │
-                      Log -> All Leads sheet
+                      Log -> All Leads sheet (upsert on Email — one row per lead)
 
 [6pm daily]
 Schedule -> Read All Leads -> Build HTML -> Send Digest
@@ -96,6 +101,11 @@ Timestamp | Name | Email | Company | Source | Message | Grade | Reason
 
 Copy the Sheet ID from the URL:
 `https://docs.google.com/spreadsheets/d/THIS_PART_HERE/edit`
+
+> **Storage is swappable.** Google Sheets keeps the demo zero-infra and lets a client read and
+> edit leads directly. For higher volume or production use, swap the Sheets nodes for n8n's
+> **Postgres / Supabase** nodes — the rest of the pipeline (scoring, routing, alerts) is
+> unchanged.
 
 ### 2. Import workflows
 
@@ -192,13 +202,11 @@ A styled contact form is included in `form/index.html`. Deploy free on GitHub Pa
 - **Scoring is prompt-based, not a trained model** — grades come from GPT-4o-mini following a
   system prompt, so quality depends on the prompt and the lead's message; there's no
   historical-conversion learning.
-- **No deduplication** — the same lead submitting twice creates two rows; there's no
-  matching against existing leads.
 - **Single timezone for the digest** — the 6pm summary fires at one fixed time for everyone.
 
 ## Contact
 
 Built by Konstantinos Arvanitis — AI engineer & automation specialist.
 
-- [LinkedIn](https://www.linkedin.com/in/karvanitis)
+- [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/karvanitis)
