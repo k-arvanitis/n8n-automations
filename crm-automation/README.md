@@ -9,6 +9,12 @@
 
 An end-to-end AI-powered lead qualification and CRM automation pipeline built with n8n. Leads come in through a custom intake form, get enriched and scored against an Ideal Customer Profile using GPT-4.1-mini, go through a human-in-the-loop Slack approval step, and - if approved - automatically create a HubSpot contact, a HubSpot deal, and a personalised cold outreach email draft. All without writing a backend.
 
+> **Why it matters:** qualifying a lead, enriching it, creating its CRM contact and deal, and
+> drafting a first outreach email is ~15 minutes of a rep's time on every single lead. This
+> pipeline does all of that automatically and pauses on **one Slack Approve click** — turning
+> repetitive sales-ops busywork into a single decision, while keeping a human in control of
+> exactly what reaches the CRM.
+
 ---
 
 ## How it works
@@ -217,7 +223,7 @@ Turn on both workflows in n8n (toggle top right), open `form/index.html` in a br
 
 - **ngrok URL changes on restart** - every time ngrok restarts, you get a new URL. You need to update `WEBHOOK_URL` in `docker-compose.yml`, restart n8n, and update the Slack Interactivity Request URL. A paid ngrok plan gives you a stable domain.
 - **Apollo.io requires a paid plan** - the People Match API is only available on the Organization plan ($119/month). This demo uses mock data. [Clearbit](https://clearbit.com) is a viable alternative with a free tier.
-- **HubSpot deal-contact association not automated** - the deal and contact are created separately. Associating them requires an additional API call to the HubSpot Associations API, which is not included here.
+- **HubSpot deal-contact association not automated** - the deal and contact are created as separate objects but not linked, so the deal won't appear under the contact in HubSpot. Linking them is one extra call to the [CRM v4 Associations API](https://developers.hubspot.com/docs/api/crm/associations): `PUT /crm/v4/objects/deals/{dealId}/associations/default/contacts/{contactId}`, passing the IDs returned by the `Create HubSpot Deal` and `Create HubSpot Contact` nodes. Drop it in as an HTTP Request node right after `Create HubSpot Deal` to make the pipeline production-complete.
 - **Slack Interactivity URL must match ngrok** - any time the tunnel restarts, the Slack App settings need to be updated manually.
 
 ---

@@ -33,6 +33,11 @@ this week" list built from whatever actually changed.
 ![n8n workflow canvas](screenshots/n8n-workflow.png)
 *Scheduled trigger → four Google Sheets reads → metric calculation → per-section AI summaries → focus block → HTML email + Slack.*
 
+> The four section summaries run as **parallel LLM chains** — one focused prompt per section —
+> then fan into the focus block. This keeps each prompt small and the workflow easy to extend
+> (add a section = add a chain). The chains can share a single model node, or be collapsed into
+> one structured-output call, if you'd rather minimise nodes over modularity.
+
 ### HTML email digest in Gmail
 ![HTML email digest](screenshots/gmail-digest.png)
 *Each section shows the headline number, the week-over-week change, a plain-English summary, and an amber anomaly box when something moved more than 20%.*
@@ -133,6 +138,12 @@ Three things a client can change without touching the workflow logic:
   copy `Get Leads Data` and point it at the new tab, add a block to `Calculate Metrics`,
   copy `Summarize Leads` with its own OpenAI model node, and reference the new section in
   `Build HTML Email`. Step-by-step in [`form/sample_data.md`](form/sample_data.md).
+- **Swap the LLM provider** — the "provider-agnostic" claim is real, not marketing. In each
+  model node, delete the **OpenAI Chat Model** and drop in the **Groq Chat Model** node
+  instead, set the model to `llama-3.3-70b-versatile`, attach a Groq credential, and reconnect
+  it to the `Summarize …` chain. Anthropic, Gemini, and Ollama work the same way — only the
+  model node changes; the rest of the flow (calculate → summarize → build → send) is untouched.
+  Run it locally with Ollama and the whole pipeline costs nothing.
 
 ## Tech stack
 
@@ -162,7 +173,8 @@ deals), or an **in-house marketing team** (MQLs, pipeline influenced, campaign s
 ## Known limitations
 
 - Requires Google Sheets as the data source — no direct CRM or database connection in this
-  version.
+  version. A **Postgres / Supabase-backed version** that reads metrics straight from your
+  database (no spreadsheet step) is available on request.
 - Anomaly detection is a simple percentage threshold versus the prior week — no statistical
   baseline, seasonality, or trend modelling.
 - The model writes its summaries only from the data passed to it; it has no external
