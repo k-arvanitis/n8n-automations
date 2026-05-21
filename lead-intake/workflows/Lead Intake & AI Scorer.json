@@ -64,7 +64,7 @@
       "name": "Score Lead with AI",
       "credentials": {
         "openAiApi": {
-          "id": "01zeIhp0RTXEhm8K",
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
           "name": "OpenAi account"
         }
       }
@@ -213,8 +213,8 @@
       "name": "Log All Leads",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "MJa1dj6i8PqbyXHM",
-          "name": "Google Sheets account 2"
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -271,8 +271,8 @@
       "webhookId": "b4b63aaa-d88d-45fe-a42e-4d230b7f9d3a",
       "credentials": {
         "gmailOAuth2": {
-          "id": "PNCAGrJQiLdVJ7yD",
-          "name": "Google Sheets account"
+          "id": "REPLACE_WITH_YOUR_GMAIL_CREDENTIAL",
+          "name": "Gmail account"
         }
       }
     },
@@ -297,7 +297,7 @@
       "webhookId": "f204abb4-4ee3-4ea5-84f0-066a9fa4d43a",
       "credentials": {
         "telegramApi": {
-          "id": "QSdjAIyiWqvUKVpw",
+          "id": "REPLACE_WITH_YOUR_TELEGRAM_CREDENTIAL",
           "name": "Telegram account"
         }
       }
@@ -421,8 +421,8 @@
       "name": "Store Cold Lead",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "Gv2nOsdGrmZVeN9H",
-          "name": "Google Sheets account 3"
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
         }
       }
     },

@@ -201,7 +201,7 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "01zeIhp0RTXEhm8K",
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
           "name": "OpenAi account"
         }
       }
@@ -243,7 +243,7 @@
       "webhookId": "a8980662-0571-4b1c-b671-363cfed8ecba",
       "credentials": {
         "slackApi": {
-          "id": "sGgqtvR4OklwZkwy",
+          "id": "REPLACE_WITH_YOUR_SLACK_CREDENTIAL",
           "name": "Slack account"
         }
       }
@@ -347,8 +347,8 @@
       ],
       "credentials": {
         "hubspotAppToken": {
-          "id": "9Usq1bjoGTJ71h78",
-          "name": "HubSpot account 3"
+          "id": "REPLACE_WITH_YOUR_HUBSPOT_CREDENTIAL",
+          "name": "HubSpot account"
         }
       }
     },
@@ -390,8 +390,8 @@
       ],
       "credentials": {
         "hubspotAppToken": {
-          "id": "9Usq1bjoGTJ71h78",
-          "name": "HubSpot account 3"
+          "id": "REPLACE_WITH_YOUR_HUBSPOT_CREDENTIAL",
+          "name": "HubSpot account"
         }
       }
     },
@@ -426,7 +426,7 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "01zeIhp0RTXEhm8K",
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
           "name": "OpenAi account"
         }
       }
@@ -453,7 +453,7 @@
       "webhookId": "ac235164-e602-43f4-bce7-389ab79009e3",
       "credentials": {
         "slackApi": {
-          "id": "sGgqtvR4OklwZkwy",
+          "id": "REPLACE_WITH_YOUR_SLACK_CREDENTIAL",
           "name": "Slack account"
         }
       }
@@ -480,7 +480,7 @@
       "webhookId": "c7bde64a-94ce-4921-bdde-9e3ba0fe3d84",
       "credentials": {
         "slackApi": {
-          "id": "sGgqtvR4OklwZkwy",
+          "id": "REPLACE_WITH_YOUR_SLACK_CREDENTIAL",
           "name": "Slack account"
         }
       }

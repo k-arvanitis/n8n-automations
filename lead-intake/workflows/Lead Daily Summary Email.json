@@ -49,8 +49,8 @@
       "name": "Read All Leads",
       "credentials": {
         "googleSheetsOAuth2Api": {
-          "id": "MJa1dj6i8PqbyXHM",
-          "name": "Google Sheets account 2"
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
         }
       }
     },
@@ -87,8 +87,8 @@
       "webhookId": "09e69c4a-ba51-47cf-a887-41e2309dee55",
       "credentials": {
         "gmailOAuth2": {
-          "id": "PNCAGrJQiLdVJ7yD",
-          "name": "Google Sheets account"
+          "id": "REPLACE_WITH_YOUR_GMAIL_CREDENTIAL",
+          "name": "Gmail account"
         }
       }
     },
