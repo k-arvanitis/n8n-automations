@@ -188,16 +188,12 @@ https://abc123.ngrok-free.app/webhook/hitl-resume
 
 In n8n: **Settings -> Import** -> import each JSON file from the `workflows/` folder separately.
 
-### 6. Replace placeholders
+### 6. Set the Slack channel
 
-Search both workflow files for these and replace:
-
-| Placeholder | Replace with |
-|-------------|-------------|
-| `YOUR_OPENAI_KEY` | OpenAI API key |
-| `YOUR_HUBSPOT_TOKEN` | HubSpot Private App token |
-| `YOUR_SLACK_BOT_TOKEN` | Slack Bot Token |
-| `YOUR_SLACK_CHANNEL_ID` | Slack channel ID for `#crm-leads` |
+The three Slack nodes post to `#crm-leads`. Either create a channel by that name and invite
+your Slack app to it, or change the channel in each Slack node to your own. API tokens are
+**not** pasted into the workflow — they're added as credentials in the next step (n8n keeps
+them in its own credential vault).
 
 ### 7. Add credentials in n8n
 

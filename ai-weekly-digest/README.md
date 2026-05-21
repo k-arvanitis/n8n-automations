@@ -34,9 +34,9 @@ this week" list built from whatever actually changed.
 *Scheduled trigger → four Google Sheets reads → metric calculation → per-section AI summaries → focus block → HTML email + Slack.*
 
 > The four section summaries run as **parallel LLM chains** — one focused prompt per section —
-> then fan into the focus block. This keeps each prompt small and the workflow easy to extend
-> (add a section = add a chain). The chains can share a single model node, or be collapsed into
-> one structured-output call, if you'd rather minimise nodes over modularity.
+> sharing a single `GPT-4o-mini — Sections` model node, with the focus block on its own
+> `GPT-4o-mini — Focus` node (it has a larger token budget). Each section is its own chain, so
+> prompts stay small and adding a section is just adding a chain.
 
 ### HTML email digest in Gmail
 ![HTML email digest](screenshots/gmail-digest.png)
@@ -106,8 +106,9 @@ needed; just import the workflow and fill in your credentials.
    - **Gmail OAuth2** → the `Send Gmail` node
    - **Slack Bot Token** → the `Send Slack` node (bot scopes: `chat:write`, and
      `chat:write.public` if the bot is not a member of the channel)
-   - **OpenAI API key** → the five `GPT-4o-mini — …` model nodes (provider is
-     swappable — Anthropic/Groq/Gemini/Ollama drop in via n8n's chat-model nodes)
+   - **OpenAI API key** → the two model nodes (`GPT-4o-mini — Sections`, shared by the four
+     section summaries, and `GPT-4o-mini — Focus`) — provider is swappable: Anthropic/Groq/
+     Gemini/Ollama drop in via n8n's chat-model nodes
 3. Set the five config values. The workflow ships referencing them as `{{ $env.X }}` —
    pick whichever fits you:
    - **Option A — paste literals into the nodes:** in the four `Get … Data` nodes set
@@ -136,8 +137,8 @@ Three things a client can change without touching the workflow logic:
   whatever fits. Same for the `Generate Focus Block` system prompt.
 - **A new data source** — duplicate the *read → calculate → summarize* pattern: add a tab,
   copy `Get Leads Data` and point it at the new tab, add a block to `Calculate Metrics`,
-  copy `Summarize Leads` with its own OpenAI model node, and reference the new section in
-  `Build HTML Email`. Step-by-step in [`form/sample_data.md`](form/sample_data.md).
+  copy `Summarize Leads` and wire it to the shared `GPT-4o-mini — Sections` model node, then
+  reference the new section in `Build HTML Email`. Step-by-step in [`form/sample_data.md`](form/sample_data.md).
 - **Swap the LLM provider** — the "provider-agnostic" claim is real, not marketing. In each
   model node, delete the **OpenAI Chat Model** and drop in the **Groq Chat Model** node
   instead, set the model to `llama-3.3-70b-versatile`, attach a Groq credential, and reconnect

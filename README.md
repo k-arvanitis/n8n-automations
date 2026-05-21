@@ -1,15 +1,25 @@
 # n8n Automations
 
-A collection of self-hosted n8n workflows for automating business processes with AI.
+Production-style **n8n automation workflows** for real business processes — AI lead scoring,
+a CRM pipeline with human-in-the-loop approval, and automated weekly reporting. Each project is
+self-contained with its own README, demo screenshots, and setup guide.
 
 ## Automations
 
-| # | Folder | What it does |
-|---|--------|--------------|
-| 01 | [lead-intake](lead-intake/) | Capture leads from a web form, score with GPT-4o-mini, route hot leads to Gmail + Telegram, log all to Google Sheets, daily digest at 6pm |
-| 02 | [crm-automation](crm-automation/) | Enrich and score leads with GPT-4.1-mini, human-in-the-loop Slack approval, auto-create HubSpot contact + deal, draft personalised cold outreach email |
-| 03 | [ai-weekly-digest](ai-weekly-digest/) | Pull weekly business metrics from Google Sheets, summarise each section with GPT-4o-mini, flag anomalies vs. the prior week, send a formatted HTML digest to Gmail + Slack every Monday |
+| # | Project | What it does |
+|---|---------|--------------|
+| 01 | [lead-intake](lead-intake/) | Capture leads from a web form, score them with GPT-4o-mini, alert hot leads to Gmail + Telegram instantly, log all to Google Sheets, send a daily digest at 6pm |
+| 02 | [crm-automation](crm-automation/) | Enrich & score leads against an ICP, route through a Slack human-in-the-loop approval, then auto-create a HubSpot contact + deal and draft a personalised cold outreach email |
+| 03 | [ai-weekly-digest](ai-weekly-digest/) | Pull weekly metrics from Google Sheets, summarise each section with GPT-4o-mini, flag anomalies vs. the prior week, and send an HTML digest to Gmail + Slack every Monday |
 
 ## Infrastructure
 
-All workflows run on a self-hosted n8n instance. You can spin one up locally with Docker — see the [official n8n docs](https://docs.n8n.io/hosting/) for setup options.
+All workflows run on a self-hosted n8n instance (Docker). The LLM provider is swappable —
+OpenAI by default, with Anthropic / Groq / Gemini / Ollama dropping in via n8n's chat-model nodes.
+
+## Contact
+
+Built by Konstantinos Arvanitis — AI engineer & automation specialist.
+
+- [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
+- [GitHub](https://github.com/karvanitis)
