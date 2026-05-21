@@ -187,4 +187,4 @@ deals), or an **in-house marketing team** (MQLs, pipeline influenced, campaign s
 Built by Konstantinos Arvanitis — AI engineer & automation specialist.
 
 - [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
-- [GitHub](https://github.com/karvanitis)
+- [GitHub](https://github.com/k-arvanitis)
