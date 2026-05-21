@@ -8,6 +8,7 @@ A collection of self-hosted n8n workflows for automating business processes with
 |---|--------|--------------|
 | 01 | [lead-intake](lead-intake/) | Capture leads from a web form, score with GPT-4o-mini, route hot leads to Gmail + Telegram, log all to Google Sheets, daily digest at 6pm |
 | 02 | [crm-automation](crm-automation/) | Enrich and score leads with GPT-4.1-mini, human-in-the-loop Slack approval, auto-create HubSpot contact + deal, draft personalised cold outreach email |
+| 03 | [ai-weekly-digest](ai-weekly-digest/) | Pull weekly business metrics from Google Sheets, summarise each section with GPT-4o-mini, flag anomalies vs. the prior week, send a formatted HTML digest to Gmail + Slack every Monday |
 
 ## Infrastructure
 

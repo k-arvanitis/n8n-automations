@@ -1,4 +1,4 @@
-# 02 - AI CRM Pipeline
+# 02 — AI CRM Pipeline
 
 ![n8n](https://img.shields.io/badge/n8n-self--hosted-orange?logo=n8n)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4.1--mini-412991?logo=openai)

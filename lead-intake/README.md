@@ -1,4 +1,4 @@
-# 01 - Lead Intake & AI Scorer
+# 01 — Lead Intake & AI Scorer
 
 ![n8n](https://img.shields.io/badge/n8n-self--hosted-orange?logo=n8n)
 ![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai)
@@ -45,6 +45,39 @@ Webhook -> Normalize -> OpenAI Score
 Schedule -> Read All Leads -> Build HTML -> Send Digest
 ```
 
+## Demo
+
+### Lead capture form
+![Lead capture form](screenshots/lead-capture-form.png)
+*The web form leads submit — sends a POST to the n8n webhook.*
+
+### Lead Intake & AI Scorer workflow
+![Lead intake workflow](screenshots/lead-intake-ai-scorer-workflow.png)
+*Webhook → normalize → GPT-4o-mini scoring → route hot vs. cold → notify + log.*
+
+### Hot lead alert (Gmail)
+![Gmail hot lead alert](screenshots/gmail-alert.png)
+*Grade A leads trigger an instant email with the AI's grade and reasoning.*
+
+### Hot lead alert (Telegram)
+![Telegram hot lead alert](screenshots/telegram-alert.png)
+*The same hot lead, pushed to Telegram for instant mobile notification.*
+
+### Lead storage (Google Sheets)
+![All leads sheet](screenshots/google-sheets-all-leads.png)
+*Every lead is logged to the `All Leads` tab with grade, reason, and intent.*
+
+![Cold leads sheet](screenshots/google-sheets-cold-leads.png)
+*Grade B/C leads are filed in the `Cold Leads` tab for later follow-up.*
+
+### Daily summary workflow
+![Daily summary workflow](screenshots/daily-lead-summary-workflow.png)
+*A scheduled workflow reads the sheet at 6pm and builds the digest.*
+
+### Daily digest email
+![Daily digest email](screenshots/gmail-daily-summary.png)
+*An HTML summary of the day's leads with a grade breakdown, in your inbox at 6pm.*
+
 ## Setup
 
 ### 1. Google Sheets
@@ -66,7 +99,7 @@ Copy the Sheet ID from the URL:
 
 ### 2. Import workflows
 
-In n8n: **Settings -> Import** -> select each JSON file separately.
+In n8n: **Settings -> Import** -> import each JSON file from the `workflows/` folder separately.
 
 ### 3. Replace placeholders
 
@@ -151,3 +184,21 @@ A styled contact form is included in `form/index.html`. Deploy free on GitHub Pa
 1. Push this repo to GitHub
 2. Go to **Settings -> Pages -> Source -> main branch**
 3. Your form is live at `https://yourname.github.io/ai-automation-portfolio/01-lead-intake/form`
+
+## Known limitations
+
+- **Webhook needs a public URL** — a locally-hosted n8n must be exposed (e.g. ngrok) for the
+  form to reach it; the free ngrok URL changes on restart.
+- **Scoring is prompt-based, not a trained model** — grades come from GPT-4o-mini following a
+  system prompt, so quality depends on the prompt and the lead's message; there's no
+  historical-conversion learning.
+- **No deduplication** — the same lead submitting twice creates two rows; there's no
+  matching against existing leads.
+- **Single timezone for the digest** — the 6pm summary fires at one fixed time for everyone.
+
+## Contact
+
+Built by Konstantinos Arvanitis — AI engineer & automation specialist.
+
+- [LinkedIn](https://www.linkedin.com/in/karvanitis)
+- [GitHub](https://github.com/karvanitis)

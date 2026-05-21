@@ -1,0 +1,825 @@
+{
+  "name": "AI Weekly Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📊 AI Weekly Digest\nEvery Monday 08:00 → read 4 Google Sheets tabs → split into this-week vs last-week →\ncompute totals, % change and anomaly flags → 4 GPT-4o-mini section summaries →\nGPT-4o-mini \"Focus for this week\" block → build HTML email → send to Gmail + Slack.\n\nConfig — `GOOGLE_SHEET_ID`, `DIGEST_EMAIL_RECIPIENT`, `SLACK_CHANNEL_ID`, `ANOMALY_THRESHOLD` — is referenced as `{{ $env.X }}`.\nEither set those in your n8n environment, or paste literal values straight into the nodes (Document ID / To / Channel / threshold).",
+        "height": 280,
+        "width": 760,
+        "color": 7
+      },
+      "id": "Overview",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Schedule\nCron `0 8 * * 1` = every Monday 08:00.\nRuns in this workflow's timezone — set it in this node\nor under Workflow → Settings → Timezone\n(defaults to your n8n instance timezone).",
+        "height": 180,
+        "width": 340,
+        "color": 4
+      },
+      "id": "ScheduleNote",
+      "name": "ScheduleNote",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### Read the data\nOne read per tab — `Leads`, `Revenue`, `Support`, `Ad Spend`.\nThe Google Sheets API cannot filter by a relative date range, so each tab\nis read in full and the **Calculate Metrics** node splits rows into the\nmost recently completed Mon–Sun week (current) and the week before it (prior).",
+        "height": 240,
+        "width": 420,
+        "color": 4
+      },
+      "id": "SheetsNote",
+      "name": "SheetsNote",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "### GPT-4o-mini\nFour parallel section summaries (`max 150 tokens`) + one Focus block (`max 200 tokens`).\nModel: `gpt-4o-mini`. Add an **OpenAI API** credential to every model node.\nSystem prompt lives in each Summarize node — edit it to change tone or focus.\nProvider is swappable: replace these with Anthropic/Groq/Gemini/Ollama chat-model nodes — the rest of the flow is unchanged.",
+        "height": 220,
+        "width": 520,
+        "color": 4
+      },
+      "id": "ModelNote",
+      "name": "ModelNote",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -260
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "every-monday-8-am",
+      "name": "Every Monday 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -160,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "get-leads-data",
+      "name": "Get Leads Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        60,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Revenue",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "get-revenue-data",
+      "name": "Get Revenue Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        60,
+        280
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Support",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "get-support-data",
+      "name": "Get Support Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        60,
+        480
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $env.GOOGLE_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Ad Spend",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "get-ad-spend-data",
+      "name": "Get Ad Spend Data",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        60,
+        680
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 4
+      },
+      "id": "merge-sheets-data",
+      "name": "Merge Sheets Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        320,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build current vs prior week metrics for all four sections.\n// The digest runs Monday morning, so the \"current\" reporting window is the\n// most recently COMPLETED Monday–Sunday week, and \"prior\" is the week before it.\nconst threshold = 20; // anomaly cutoff in % (n8n blocks $env inside Code nodes)\n\nconst now = new Date();\nconst day = now.getDay(); // 0 = Sunday .. 6 = Saturday\nconst mondayThisWeek = new Date(now);\nmondayThisWeek.setHours(0, 0, 0, 0);\nmondayThisWeek.setDate(mondayThisWeek.getDate() - (day === 0 ? 6 : day - 1));\n\nconst curStart = new Date(mondayThisWeek);\ncurStart.setDate(curStart.getDate() - 7);\nconst curEnd = new Date(mondayThisWeek); // exclusive\nconst priorStart = new Date(curStart);\npriorStart.setDate(priorStart.getDate() - 7);\nconst priorEnd = new Date(curStart); // exclusive\n\nconst inRange = (v, start, end) => {\n  const t = new Date(v);\n  return !isNaN(t) && t >= start && t < end;\n};\nconst num = (v) => {\n  const n = parseFloat(v);\n  return Number.isFinite(n) ? n : 0;\n};\nconst round1 = (n) => Math.round(n * 10) / 10;\nconst round2 = (n) => Math.round(n * 100) / 100;\nconst pctChange = (cur, prior) =>\n  prior === 0 ? (cur === 0 ? 0 : 100) : round1(((cur - prior) / prior) * 100);\nconst money = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n\nconst rowsOf = (nodeName) => $(nodeName).all().map((i) => i.json);\nconst splitWeeks = (rows) => ({\n  current: rows.filter((r) => inRange(r.Date, curStart, curEnd)),\n  prior: rows.filter((r) => inRange(r.Date, priorStart, priorEnd)),\n});\nconst sampleText = (rows, cols) =>\n  rows.slice(0, 5).map((r) => cols.map((c) => c + '=' + (r[c] ?? '')).join(', ')).join(' | ') ||\n  'no rows recorded this week';\n\n// --- Leads: total leads = number of rows\nconst leads = splitWeeks(rowsOf('Get Leads Data'));\nconst leadsCur = leads.current.length;\nconst leadsPrior = leads.prior.length;\nconst leadsChange = pctChange(leadsCur, leadsPrior);\n\n// --- Revenue: sum of the Amount column\nconst revenue = splitWeeks(rowsOf('Get Revenue Data'));\nconst revCur = round2(revenue.current.reduce((s, r) => s + num(r.Amount), 0));\nconst revPrior = round2(revenue.prior.reduce((s, r) => s + num(r.Amount), 0));\nconst revChange = pctChange(revCur, revPrior);\n\n// --- Support: total tickets = sum of Tickets; also resolved + average first-response time\nconst support = splitWeeks(rowsOf('Get Support Data'));\nconst ticketsCur = support.current.reduce((s, r) => s + num(r.Tickets), 0);\nconst ticketsPrior = support.prior.reduce((s, r) => s + num(r.Tickets), 0);\nconst ticketsChange = pctChange(ticketsCur, ticketsPrior);\nconst resolvedCur = support.current.reduce((s, r) => s + num(r.Resolved), 0);\nconst avgResp = (rows) =>\n  rows.length ? round1(rows.reduce((s, r) => s + num(r.Avg_Response_hrs), 0) / rows.length) : 0;\nconst respCur = avgResp(support.current);\nconst respPrior = avgResp(support.prior);\n\n// --- Ad Spend: sum Spend, sum Conversions, CPA = Spend / Conversions\nconst ads = splitWeeks(rowsOf('Get Ad Spend Data'));\nconst spendCur = round2(ads.current.reduce((s, r) => s + num(r.Spend), 0));\nconst spendPrior = round2(ads.prior.reduce((s, r) => s + num(r.Spend), 0));\nconst spendChange = pctChange(spendCur, spendPrior);\nconst convCur = ads.current.reduce((s, r) => s + num(r.Conversions), 0);\nconst convPrior = ads.prior.reduce((s, r) => s + num(r.Conversions), 0);\nconst convChange = pctChange(convCur, convPrior);\nconst cpaCur = convCur ? round2(spendCur / convCur) : 0;\nconst cpaPrior = convPrior ? round2(spendPrior / convPrior) : 0;\n\nconst fmtNice = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });\nconst lastDay = new Date(curEnd.getTime() - 86400000);\nconst weekRange = fmtNice(curStart) + ' – ' + fmtNice(lastDay) + ', ' + curStart.getFullYear();\n\nconst section = (name, metric, prior, change, formatted, extra) => ({\n  name,\n  metric,\n  prior,\n  change,\n  direction: change >= 0 ? 'up' : 'down',\n  anomaly: Math.abs(change) > threshold,\n  formatted,\n  ...extra,\n});\n\nreturn [\n  {\n    json: {\n      weekRange,\n      generatedDate: now.toISOString().slice(0, 10),\n      threshold,\n      leads: section('Leads', leadsCur, leadsPrior, leadsChange, leadsCur + ' leads', {\n        sampleText: sampleText(leads.current, ['Date', 'Source', 'Grade', 'Converted']),\n      }),\n      revenue: section('Revenue', revCur, revPrior, revChange, '$' + money(revCur), {\n        sampleText: sampleText(revenue.current, ['Date', 'Amount', 'Product', 'Channel']),\n      }),\n      support: section('Support', ticketsCur, ticketsPrior, ticketsChange, ticketsCur + ' tickets', {\n        resolved: resolvedCur,\n        avgResponseHrs: respCur,\n        avgResponseHrsPrior: respPrior,\n        subline: resolvedCur + ' resolved · avg first response ' + respCur + ' hrs (was ' + respPrior + ' hrs)',\n        sampleText: sampleText(support.current, ['Date', 'Tickets', 'Resolved', 'Avg_Response_hrs']),\n      }),\n      adSpend: section('Ad Spend', spendCur, spendPrior, spendChange, '$' + money(spendCur), {\n        conversions: convCur,\n        conversionsPrior: convPrior,\n        conversionsChange: convChange,\n        cpa: cpaCur,\n        cpaPrior: cpaPrior,\n        subline: convCur + ' conversions · CPA $' + money(cpaCur) + ' (was $' + money(cpaPrior) + ')',\n        sampleText: sampleText(ads.current, ['Date', 'Platform', 'Spend', 'Clicks', 'Conversions']),\n      }),\n    },\n  },\n];\n"
+      },
+      "id": "calculate-metrics",
+      "name": "Calculate Metrics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Section: Leads\nThis week: {{ $json.leads.metric }} leads ({{ $json.leads.change }}% vs last week)\nPrior week: {{ $json.leads.prior }} leads\nAnomaly flagged: {{ $json.leads.anomaly }}\nRaw data sample: {{ $json.leads.sampleText }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are a business analyst writing a concise weekly performance summary for a business owner. Write exactly 2-3 sentences summarizing the Leads data for this week. Be specific: mention the key metric, whether it improved or declined versus last week, and one notable detail. Use plain English. No jargon. No bullet points. No headers. Just a paragraph."
+            }
+          ]
+        }
+      },
+      "id": "summarize-leads",
+      "name": "Summarize Leads",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 150
+        }
+      },
+      "id": "gpt-4o-mini-leads",
+      "name": "GPT-4o-mini — Leads",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        820,
+        60
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Section: Revenue\nThis week: {{ $json.revenue.formatted }} in revenue ({{ $json.revenue.change }}% vs last week)\nPrior week: ${{ $json.revenue.prior }}\nAnomaly flagged: {{ $json.revenue.anomaly }}\nRaw data sample: {{ $json.revenue.sampleText }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are a business analyst writing a concise weekly performance summary for a business owner. Write exactly 2-3 sentences summarizing the Revenue data for this week. Be specific: mention the key metric, whether it improved or declined versus last week, and one notable detail. Use plain English. No jargon. No bullet points. No headers. Just a paragraph."
+            }
+          ]
+        }
+      },
+      "id": "summarize-revenue",
+      "name": "Summarize Revenue",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 150
+        }
+      },
+      "id": "gpt-4o-mini-revenue",
+      "name": "GPT-4o-mini — Revenue",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        820,
+        400
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Section: Support\nThis week: {{ $json.support.metric }} tickets, {{ $json.support.resolved }} resolved, avg first response {{ $json.support.avgResponseHrs }} hrs ({{ $json.support.change }}% tickets vs last week)\nPrior week: {{ $json.support.prior }} tickets, avg first response {{ $json.support.avgResponseHrsPrior }} hrs\nAnomaly flagged: {{ $json.support.anomaly }}\nRaw data sample: {{ $json.support.sampleText }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are a business analyst writing a concise weekly performance summary for a business owner. Write exactly 2-3 sentences summarizing the Support data for this week. Be specific: mention the key metric, whether it improved or declined versus last week, and one notable detail. Use plain English. No jargon. No bullet points. No headers. Just a paragraph."
+            }
+          ]
+        }
+      },
+      "id": "summarize-support",
+      "name": "Summarize Support",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 150
+        }
+      },
+      "id": "gpt-4o-mini-support",
+      "name": "GPT-4o-mini — Support",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        820,
+        740
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Section: Ad Spend\nThis week: {{ $json.adSpend.formatted }} spend, {{ $json.adSpend.conversions }} conversions, CPA ${{ $json.adSpend.cpa }} ({{ $json.adSpend.change }}% spend vs last week)\nPrior week: ${{ $json.adSpend.prior }} spend, {{ $json.adSpend.conversionsPrior }} conversions, CPA ${{ $json.adSpend.cpaPrior }}\nAnomaly flagged: {{ $json.adSpend.anomaly }}\nRaw data sample: {{ $json.adSpend.sampleText }}",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are a business analyst writing a concise weekly performance summary for a business owner. Write exactly 2-3 sentences summarizing the Ad Spend data for this week. Be specific: mention the key metric, whether it improved or declined versus last week, and one notable detail. Use plain English. No jargon. No bullet points. No headers. Just a paragraph."
+            }
+          ]
+        }
+      },
+      "id": "summarize-ad-spend",
+      "name": "Summarize Ad Spend",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 150
+        }
+      },
+      "id": "gpt-4o-mini-ad-spend",
+      "name": "GPT-4o-mini — Ad Spend",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        820,
+        1080
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 4
+      },
+      "id": "merge-summaries",
+      "name": "Merge Summaries",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1100,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Here are this week's section summaries and anomalies:\n\nLeads: {{ $('Summarize Leads').first().json.text }} | Anomaly: {{ $('Calculate Metrics').first().json.leads.anomaly }} | Change: {{ $('Calculate Metrics').first().json.leads.change }}%\nRevenue: {{ $('Summarize Revenue').first().json.text }} | Anomaly: {{ $('Calculate Metrics').first().json.revenue.anomaly }} | Change: {{ $('Calculate Metrics').first().json.revenue.change }}%\nSupport: {{ $('Summarize Support').first().json.text }} | Anomaly: {{ $('Calculate Metrics').first().json.support.anomaly }} | Change: {{ $('Calculate Metrics').first().json.support.change }}%\nAd Spend: {{ $('Summarize Ad Spend').first().json.text }} | Anomaly: {{ $('Calculate Metrics').first().json.adSpend.anomaly }} | Change: {{ $('Calculate Metrics').first().json.adSpend.change }}%",
+        "messages": {
+          "messageValues": [
+            {
+              "type": "SystemMessagePromptTemplate",
+              "message": "You are a business advisor. Based on the weekly performance data provided, write 3-5 concise bullet points for \"Focus for this week\". Each bullet must be a specific, actionable recommendation. Start each bullet with an action verb. Maximum 15 words per bullet. Output ONLY the bullets — one per line, each starting with \"- \". No preamble, no headers, no closing remarks."
+            }
+          ]
+        }
+      },
+      "id": "generate-focus-block",
+      "name": "Generate Focus Block",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        380
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 200
+        }
+      },
+      "id": "gpt-4o-mini-focus",
+      "name": "GPT-4o-mini — Focus",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        560
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Assemble the HTML email and the condensed Slack message from the metrics\n// and the LLM-generated summaries / focus block.\nconst m = $('Calculate Metrics').first().json;\nconst summaries = {\n  leads: ($('Summarize Leads').first().json.text || '').trim(),\n  revenue: ($('Summarize Revenue').first().json.text || '').trim(),\n  support: ($('Summarize Support').first().json.text || '').trim(),\n  adSpend: ($('Summarize Ad Spend').first().json.text || '').trim(),\n};\n\nconst focusRaw = $('Generate Focus Block').first().json.text || '';\nconst focusBullets = focusRaw\n  .split('\\n')\n  .map((l) => l.replace(/^\\s*(?:[-•*]|\\d+[.)])\\s*/, '').trim())\n  .filter((l) => l.length > 0);\n\nconst sign = (n) => (n >= 0 ? '+' : '');\nconst badgeClass = (n) => (Math.abs(n) <= 5 ? 'badge-neutral' : n > 0 ? 'badge-up' : 'badge-down');\nconst emoji = (n) => (Math.abs(n) <= 5 ? '➡️' : n > 0 ? '✅' : '🔴');\nconst oneLine = (txt) => (txt || '').replace(/\\s+/g, ' ').trim();\n\nconst sections = [m.leads, m.revenue, m.support, m.adSpend];\nconst summaryFor = (s) =>\n  s.name === 'Leads' ? summaries.leads :\n  s.name === 'Revenue' ? summaries.revenue :\n  s.name === 'Support' ? summaries.support : summaries.adSpend;\n\nconst sectionHtml = sections\n  .map((s) => {\n    const summary = summaryFor(s);\n    const anomalyBox = s.anomaly\n      ? `<div class=\"anomaly-box\">⚠️ Anomaly — ${s.name} ${s.direction === 'up' ? 'rose' : 'fell'} ${Math.abs(s.change)}% versus last week, outside the normal ±${m.threshold}% range. Worth a closer look.</div>`\n      : '';\n    const subline = s.subline ? `<div class=\"subline\">${s.subline}</div>` : '';\n    return `  <div class=\"section\">\n    <div class=\"section-title\">${s.name}</div>\n    <div class=\"metric-row\">\n      <span class=\"metric-value\">${s.formatted}</span>\n      <span class=\"${badgeClass(s.change)}\">${sign(s.change)}${s.change}% vs last week</span>\n    </div>\n    ${subline}\n    ${anomalyBox}\n    <p class=\"summary-text\">${summary}</p>\n  </div>`;\n  })\n  .join('\\n');\n\nconst focusHtml = (focusBullets.length ? focusBullets : ['No anomalies this week — keep doing what is working.'])\n  .map((b) => `      <li>${b}</li>`)\n  .join('\\n');\n\nconst html = `<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <style>\n    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #1a1a1a; }\n    .header { background: #1a1a1a; color: white; padding: 24px; border-radius: 8px 8px 0 0; }\n    .header h1 { margin: 0; font-size: 20px; }\n    .header p { margin: 4px 0 0; font-size: 13px; color: #999; }\n    .section { padding: 20px 24px; border-bottom: 1px solid #eee; }\n    .section-title { font-size: 14px; font-weight: bold; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }\n    .metric-row { display: flex; align-items: baseline; gap: 12px; margin: 8px 0; }\n    .metric-value { font-size: 28px; font-weight: bold; }\n    .subline { font-size: 13px; color: #888; margin: 0 0 6px; }\n    .badge-up { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 12px; font-size: 12px; }\n    .badge-down { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 12px; }\n    .badge-neutral { background: #f3f4f6; color: #374151; padding: 2px 8px; border-radius: 12px; font-size: 12px; }\n    .anomaly-box { background: #fffbeb; border-left: 3px solid #f59e0b; padding: 10px 14px; margin: 10px 0; border-radius: 0 6px 6px 0; font-size: 13px; color: #92400e; }\n    .summary-text { font-size: 14px; color: #444; line-height: 1.6; margin: 8px 0 0; }\n    .focus-section { padding: 20px 24px; background: #f9fafb; }\n    .focus-section h2 { font-size: 15px; margin: 0 0 12px; }\n    .focus-section ul { margin: 0; padding-left: 18px; }\n    .focus-section li { font-size: 14px; color: #444; margin-bottom: 6px; line-height: 1.5; }\n    .footer { padding: 16px 24px; font-size: 12px; color: #999; text-align: center; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>Weekly Business Digest</h1>\n    <p>${m.weekRange} · Generated by AI Weekly Digest</p>\n  </div>\n${sectionHtml}\n  <div class=\"focus-section\">\n    <h2>🎯 Focus for this week</h2>\n    <ul>\n${focusHtml}\n    </ul>\n  </div>\n  <div class=\"footer\">AI Weekly Digest · ${m.generatedDate}</div>\n</body>\n</html>`;\n\nconst subject = `Weekly Business Digest — ${m.weekRange}`;\n\nconst slackText = [\n  `📊 *Weekly Business Digest — ${m.weekRange}*`,\n  '',\n  `📋 *Leads:* ${m.leads.metric} ${emoji(m.leads.change)} ${sign(m.leads.change)}${m.leads.change}%`,\n  oneLine(summaries.leads),\n  '',\n  `💰 *Revenue:* ${m.revenue.formatted} ${emoji(m.revenue.change)} ${sign(m.revenue.change)}${m.revenue.change}%`,\n  oneLine(summaries.revenue),\n  '',\n  `🎧 *Support:* ${m.support.metric} tickets ${emoji(m.support.change)} ${sign(m.support.change)}${m.support.change}%`,\n  oneLine(summaries.support),\n  '',\n  `📣 *Ad Spend:* ${m.adSpend.formatted} → ${m.adSpend.conversions} conversions ${emoji(m.adSpend.change)} ${sign(m.adSpend.change)}${m.adSpend.change}%`,\n  oneLine(summaries.adSpend),\n  '',\n  '🎯 *Focus this week:*',\n  ...(focusBullets.length ? focusBullets : ['No anomalies this week — steady as she goes.']).map((b) => `• ${b}`),\n  '',\n  `📧 Full HTML report in your inbox`,\n].join('\\n');\n\nreturn [{ json: { html, subject, slackText, weekRange: m.weekRange, generatedDate: m.generatedDate } }];\n"
+      },
+      "id": "build-html-email",
+      "name": "Build HTML Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.DIGEST_EMAIL_RECIPIENT }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-gmail",
+      "name": "Send Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1780,
+        380
+      ],
+      "webhookId": "ai-weekly-digest-gmail",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_YOUR_GMAIL_CREDENTIAL",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $env.SLACK_CHANNEL_ID }}",
+          "mode": "id"
+        },
+        "text": "={{ $('Build HTML Email').first().json.slackText }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "send-slack",
+      "name": "Send Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2000,
+        380
+      ],
+      "webhookId": "ai-weekly-digest-slack",
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_YOUR_SLACK_CREDENTIAL",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Monday 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Leads Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Revenue Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Support Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Ad Spend Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Leads Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Sheets Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Revenue Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Sheets Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Support Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Sheets Data",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Get Ad Spend Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Sheets Data",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge Sheets Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Summarize Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize Revenue",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize Support",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize Ad Spend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Leads": {
+      "main": [
+        [
+          {
+            "node": "Merge Summaries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Revenue": {
+      "main": [
+        [
+          {
+            "node": "Merge Summaries",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Summarize Support": {
+      "main": [
+        [
+          {
+            "node": "Merge Summaries",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Summarize Ad Spend": {
+      "main": [
+        [
+          {
+            "node": "Merge Summaries",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge Summaries": {
+      "main": [
+        [
+          {
+            "node": "Generate Focus Block",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Focus Block": {
+      "main": [
+        [
+          {
+            "node": "Build HTML Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build HTML Email": {
+      "main": [
+        [
+          {
+            "node": "Send Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Gmail": {
+      "main": [
+        [
+          {
+            "node": "Send Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini — Leads": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Leads",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini — Revenue": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Revenue",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini — Support": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Support",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini — Ad Spend": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Ad Spend",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GPT-4o-mini — Focus": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Focus Block",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
