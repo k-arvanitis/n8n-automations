@@ -56,8 +56,8 @@ Schedule -> Read All Leads -> Build HTML -> Send Digest
 ![Lead capture form](screenshots/lead-capture-form.png)
 *The web form leads submit — sends a POST to the n8n webhook.*
 
-### Lead Intake & AI Scorer workflow
-![Lead intake workflow](screenshots/lead-intake-ai-scorer-workflow.png)
+### n8n workflow canvas (main scorer)
+![Lead intake workflow](screenshots/n8n-workflow-lead-scorer.png)
 *Webhook → normalize → GPT-4o-mini scoring → route hot vs. cold → notify + log.*
 
 ### Hot lead alert (Gmail)
@@ -75,8 +75,8 @@ Schedule -> Read All Leads -> Build HTML -> Send Digest
 ![Cold leads sheet](screenshots/google-sheets-cold-leads.png)
 *Grade B/C leads are filed in the `Cold Leads` tab for later follow-up.*
 
-### Daily summary workflow
-![Daily summary workflow](screenshots/daily-lead-summary-workflow.png)
+### n8n workflow canvas (daily summary)
+![Daily summary workflow](screenshots/n8n-workflow-daily-summary.png)
 *A scheduled workflow reads the sheet at 6pm and builds the digest.*
 
 ### Daily digest email
