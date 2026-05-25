@@ -45,9 +45,23 @@ Webhook -> Normalize -> OpenAI Score
                     └───────┬────────┘
                             │
                       Log -> All Leads sheet (upsert on Email — one row per lead)
+```
 
-[6pm daily]
-Schedule -> Read All Leads -> Build HTML -> Send Digest
+## Daily digest
+
+A second workflow (`Lead Daily Summary Email.json`) runs on a cron schedule — **18:00 Mon–Fri**, in the n8n instance's timezone. It reads the `All Leads` tab, filters to today's rows (timestamp ≥ midnight), and builds an HTML email with:
+
+- **Headline counters** — total leads today + per-grade counts (A / B / C).
+- **By-source table** — today's leads grouped by `Source`, sorted by count.
+- **Full leads table** — every lead from today, row-coloured by grade (green / amber / red), with name, email, source, grade, and the AI's one-line reason.
+
+If no leads arrive, the email still sends with *"No leads today"* placeholders — a heartbeat that confirms the pipeline is alive. It goes through the same Gmail credential as the hot-lead alerts.
+
+```
+[18:00 Mon–Fri]
+      │
+      ▼
+Schedule -> Read All Leads -> Filter to today -> Build HTML -> Send Summary Email
 ```
 
 ## Demo
@@ -202,11 +216,16 @@ A styled contact form is included in `form/index.html`. Deploy free on GitHub Pa
 ## Known limitations
 
 - **Webhook needs a public URL** — a locally-hosted n8n must be exposed (e.g. ngrok) for the
-  form to reach it; the free ngrok URL changes on restart.
+  form to reach it; the free ngrok URL changes on restart. For production, deploy n8n on a VPS
+  (Hetzner / DigitalOcean) or use **n8n Cloud** — both give you a stable URL out of the box.
+- **No automatic retry on LLM failure** — if the OpenAI call times out or errors, that lead is
+  logged without a grade. n8n's per-node *Retry On Fail* setting (e.g. 3 retries, 2s delay)
+  closes this in one click on the `OpenAI Score` node; it's off in the demo to keep the canvas
+  readable.
 - **Scoring is prompt-based, not a trained model** — grades come from GPT-4o-mini following a
   system prompt, so quality depends on the prompt and the lead's message; there's no
   historical-conversion learning.
-- **Single timezone for the digest** — the 6pm summary fires at one fixed time for everyone.
+- **Single timezone for the digest** — the 18:00 summary fires at one fixed time for everyone.
 
 ## Contact
 
