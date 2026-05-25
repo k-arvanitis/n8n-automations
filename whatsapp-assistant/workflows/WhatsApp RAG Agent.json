@@ -1,0 +1,250 @@
+{
+  "name": "WhatsApp RAG Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 💬 WhatsApp RAG Agent\nWhatsApp Cloud API trigger → filter (text only) → embed → search Qdrant →\nbuild context (tolerates no match) → **AI Agent** (OpenAI + memory + save_lead tool) →\nreply via Cloud API → log to Sheets.\n\nEvery valid message goes through the agent: it greets on first contact, answers from\ncontext, says \"I don't know\" when unsupported, and captures leads on buying intent.\n\nConfig from `{{ $env.X }}`: `QDRANT_URL`, `QDRANT_COLLECTION`, `QDRANT_API_KEY`,\n`WHATSAPP_PHONE_NUMBER_ID`. OpenAI + WhatsApp + Sheets use n8n credentials.\n\nSet this workflow's **Error Workflow** to \"Error Handler\" under Workflow → Settings.",
+        "height": 320,
+        "width": 760,
+        "color": 7
+      },
+      "id": "bcb7f557-3b90-41eb-b16d-7b1666e41493",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": { "updates": ["messages"], "options": {} },
+      "id": "c78e0965-1c56-4fc6-8e4f-be7109d9a932",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [32, 448],
+      "webhookId": "e8ca7374-acac-4275-993a-6cdb59ec6a1a",
+      "credentials": { "whatsAppTriggerApi": { "id": "REPLACE_WITH_YOUR_WHATSAPP_TRIGGER_CREDENTIAL", "name": "WhatsApp OAuth account" } }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 2 },
+          "conditions": [
+            { "id": "e57f8d71-e358-4fa8-8195-71621053a0ad", "leftValue": "={{ $json.messages?.[0]?.type }}", "rightValue": "text", "operator": { "type": "string", "operation": "equals" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "853ebf33-b1b1-4983-b4ce-885a7fc41ff9",
+      "name": "Valid Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [240, 448]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "d5b7087b-b4f9-4ae0-9688-aa7c7b76a249", "name": "query", "value": "={{ $json.messages[0].text.body }}", "type": "string" },
+            { "id": "b0dd5fda-d443-4217-aece-04afd31d87cd", "name": "sender", "value": "={{ $json.messages[0].from }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c2bde96c-7fd9-4f73-a45a-16698717a3d0",
+      "name": "Set Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [464, 448]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"text-embedding-3-small\", input: $('Set Fields').item.json.query }) }}",
+        "options": {}
+      },
+      "id": "635a89fa-3d1b-41b6-8846-a2a866c3350c",
+      "name": "Embed Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [688, 448],
+      "credentials": { "openAiApi": { "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL", "name": "OpenAi account" } }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.QDRANT_URL }}/collections/{{ $env.QDRANT_COLLECTION }}/points/search",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "api-key", "value": "={{ $env.QDRANT_API_KEY }}" }, { "name": "Content-Type", "value": "application/json" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vector: $json.data[0].embedding, limit: 5, score_threshold: 0.4, with_payload: true }) }}",
+        "options": {}
+      },
+      "id": "725fc430-c3a9-40e2-afc7-266062001ef8",
+      "name": "Search Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [912, 448]
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = ($input.first().json.result) || [];\nif (!results.length) {\n  return [{ json: { context: '', top_source: '', top_score: 0 } }];\n}\nconst context = results.map(r => `[${r.payload.source_file} / ${r.payload.heading}]\\n${r.payload.text}`).join('\\n\\n---\\n\\n');\nreturn [{ json: { context, top_source: results[0].payload.source_file, top_score: results[0].score } }];\n"
+      },
+      "id": "6b221767-3980-48ac-b303-160644fbb707",
+      "name": "Build Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1136, 288]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Set Fields').item.json.query }}",
+        "options": {
+          "systemMessage": "=You are the virtual assistant for Arion Real Estate, a real estate agency in Athens, Greece. You help customers over WhatsApp with listings, the buying process, fees and taxes, neighbourhoods, and living in Athens.\n\nIf there is NO prior conversation history (the customer's first message), begin your reply with one short line: \"Hi! I'm Arion Real Estate's virtual assistant — here to help with listings, fees, the buying process, and living in Athens.\" Then answer their question. On all later turns, do NOT repeat the greeting.\n\nAnswer using ONLY the context below. Be concise, professional, and friendly. Reply in plain text for WhatsApp (no markdown). If the context does not contain the answer, say exactly: \"I don't have that information. Please contact us at info@arionrealestate.gr or call +30 210 0000000.\" Never invent property details, prices, or legal information. Use the prior conversation to resolve follow-up questions.\n\nLEAD CAPTURE: When a customer shows buying intent (wants to view a property, asks how to proceed, mentions a budget, or asks to be contacted), politely collect across as many turns as needed: their name, budget, preferred area, and the property type or listing they want. Ask for only one or two missing details at a time — do not interrogate. Their phone number is already known, so never ask for it. Once you have their name plus at least one of (budget, area, property of interest), call the save_lead tool to record them, then reassure them an agent will follow up shortly. If they add or change details later, call save_lead again to update.\n\nContext:\n{{ $('Build Context').item.json.context }}"
+        }
+      },
+      "id": "3de0a5e2-eeca-47dd-ab74-098b5d935d58",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [1360, 288]
+    },
+    {
+      "parameters": {
+        "model": { "__rl": true, "mode": "list", "value": "gpt-4o-mini", "cachedResultName": "gpt-4o-mini" },
+        "options": { "temperature": 0.3 }
+      },
+      "id": "cb22c00f-4bfb-41d2-93f1-0a71893f7ad3",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [1280, 512],
+      "credentials": { "openAiApi": { "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL", "name": "OpenAi account" } }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Set Fields').item.json.sender }}",
+        "contextWindowLength": 10
+      },
+      "id": "414cf2e7-959a-42a1-9e00-4f50deb518dc",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [1472, 512]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": { "__rl": true, "value": "YOUR_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Leads", "mode": "list", "cachedResultName": "Leads" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Phone": "={{ $('Set Fields').item.json.sender }}",
+            "Status": "New",
+            "Interest": "={{ $fromAI('Interest', `Property type or specific listing the customer is interested in`, 'string') }}",
+            "Area": "={{ $fromAI('Area', `Preferred neighbourhood or area in Athens`, 'string') }}",
+            "Budget": "={{ $fromAI('Budget', `Customer budget, e.g. 400k`, 'string') }}",
+            "Name": "={{ $fromAI('Name', `Customer full name`, 'string') }}"
+          },
+          "matchingColumns": ["Phone"],
+          "schema": [
+            { "id": "Timestamp", "displayName": "Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Phone", "displayName": "Phone", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Name", "displayName": "Name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Budget", "displayName": "Budget", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Area", "displayName": "Area", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Interest", "displayName": "Interest", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false },
+            { "id": "Status", "displayName": "Status", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true, "removed": false }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [1568, 544],
+      "id": "f760066f-1b67-412a-a24a-7d5d54386e17",
+      "name": "Save Lead",
+      "credentials": { "googleSheetsOAuth2Api": { "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL", "name": "Google Sheets account" } }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "={{ $env.WHATSAPP_PHONE_NUMBER_ID }}",
+        "recipientPhoneNumber": "={{ $('Set Fields').item.json.sender }}",
+        "textBody": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "id": "b1a6376c-0e7c-41f6-9afe-1f1d40a9df0a",
+      "name": "Send Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [1808, 288],
+      "webhookId": "b4e27a35-3849-4f26-9ee1-92c383128701",
+      "credentials": { "whatsAppApi": { "id": "REPLACE_WITH_YOUR_WHATSAPP_CREDENTIAL", "name": "WhatsApp account" } }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "YOUR_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "Logs", "mode": "list", "cachedResultName": "Logs" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now }}",
+            "Sender": "={{ $('Set Fields').item.json.sender }}",
+            "Query": "={{ $('Set Fields').item.json.query }}",
+            "Reply": "={{ $('AI Agent').item.json.output }}",
+            "Top Source": "={{ $('Build Context').item.json.top_source }}",
+            "Top Score": "={{ $('Build Context').item.json.top_score }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "Timestamp", "displayName": "Timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Sender", "displayName": "Sender", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Query", "displayName": "Query", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Reply", "displayName": "Reply", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Top Source", "displayName": "Top Source", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Top Score", "displayName": "Top Score", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f2d13d83-2ad5-4bcb-9bff-c54aa008f90e",
+      "name": "Log to Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [2032, 288],
+      "credentials": { "googleSheetsOAuth2Api": { "id": "REPLACE_WITH_YOUR_GOOGLE_SHEETS_CREDENTIAL", "name": "Google Sheets account" } }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": { "main": [[{ "node": "Valid Message?", "type": "main", "index": 0 }]] },
+    "Valid Message?": { "main": [[{ "node": "Set Fields", "type": "main", "index": 0 }]] },
+    "Set Fields": { "main": [[{ "node": "Embed Query", "type": "main", "index": 0 }]] },
+    "Embed Query": { "main": [[{ "node": "Search Qdrant", "type": "main", "index": 0 }]] },
+    "Search Qdrant": { "main": [[{ "node": "Build Context", "type": "main", "index": 0 }]] },
+    "Build Context": { "main": [[{ "node": "AI Agent", "type": "main", "index": 0 }]] },
+    "OpenAI Chat Model": { "ai_languageModel": [[{ "node": "AI Agent", "type": "ai_languageModel", "index": 0 }]] },
+    "Window Buffer Memory": { "ai_memory": [[{ "node": "AI Agent", "type": "ai_memory", "index": 0 }]] },
+    "Save Lead": { "ai_tool": [[{ "node": "AI Agent", "type": "ai_tool", "index": 0 }]] },
+    "AI Agent": { "main": [[{ "node": "Send Reply", "type": "main", "index": 0 }]] },
+    "Send Reply": { "main": [[{ "node": "Log to Sheets", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "tags": []
+}

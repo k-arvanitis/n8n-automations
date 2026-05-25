@@ -1,0 +1,373 @@
+{
+  "name": "Document Ingestion Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 📥 Document Ingestion Pipeline\nGoogle Drive (.md files) → chunk by Markdown heading → embed with OpenAI →\nupsert into Qdrant Cloud.\n\nConfig is read from `{{ $env.X }}`: `GDRIVE_FOLDER_ID`, `QDRANT_URL`,\n`QDRANT_COLLECTION`, `QDRANT_API_KEY`, `OPENAI_API_KEY`.\n\nSet this workflow's **Error Workflow** to \"Error Handler\" under Workflow → Settings.",
+        "height": 220,
+        "width": 720,
+        "color": 7
+      },
+      "id": "56f68acf-880f-4515-8a2b-521be1e5420c",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "={{ $env.GDRIVE_FOLDER_ID }}",
+          "mode": "id"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "id": "bc8b7883-1968-4e89-b37c-cc760f45843e",
+      "name": "Google Drive Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1100,
+        320
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "11999852-b8bf-47de-b531-94fd485510f9",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": ".md",
+              "operator": {
+                "type": "string",
+                "operation": "endsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "94f1b025-4a16-467e-b778-8e5e83fc3a13",
+      "name": "Is Markdown File?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -880,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ce585ee6-a05d-42b3-8857-891e394af4b0",
+      "name": "Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -660,
+        280
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "destinationKey": "content",
+        "options": {}
+      },
+      "id": "31c38154-cfe3-49fb-8189-2b0ec8506ae0",
+      "name": "Extract Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function toUuid(str) {\n  let h1 = 1779033703, h2 = 3144134277, h3 = 1013904242, h4 = 2773480762;\n  for (let i = 0, k; i < str.length; i++) {\n    k = str.charCodeAt(i);\n    h1 = h2 ^ Math.imul(h1 ^ k, 597399067);\n    h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);\n    h3 = h4 ^ Math.imul(h3 ^ k, 951274213);\n    h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);\n  }\n  h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);\n  h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);\n  h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);\n  h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);\n  h1 ^= (h2 ^ h3 ^ h4); h2 ^= h1; h3 ^= h1; h4 ^= h1;\n  const hex = [h1, h2, h3, h4].map(n => (n >>> 0).toString(16).padStart(8, '0')).join('');\n  return [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20,32)].join('-');\n}\n\n// Process EVERY file in this run, not just the first.\nconst out = [];\nconst items = $input.all();\nlet sources = [];\ntry { sources = $('Is Markdown File?').all(); } catch (e) {}\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const fileName = item.json.name\n    || (sources[i] && sources[i].json && sources[i].json.name)\n    || (item.binary && item.binary.data && item.binary.data.fileName)\n    || 'unknown.md';\n  const text = (item.json.content || '').replace(/\\r\\n/g, '\\n');\n  const lines = text.split('\\n');\n  const sections = [];\n  let current = { heading: 'Introduction', lines: [] };\n  for (const line of lines) {\n    if (/^#{2,3}\\s+/.test(line)) {\n      sections.push(current);\n      current = { heading: line.replace(/^#{2,3}\\s+/, '').trim(), lines: [line] };\n    } else {\n      current.lines.push(line);\n    }\n  }\n  sections.push(current);\n\n  let idx = 0;\n  for (const s of sections) {\n    const body = s.lines.join('\\n').trim();\n    if (body.length < 50) continue;\n    out.push({ json: {\n      text: body,\n      source_file: fileName,\n      heading: s.heading,\n      chunk_index: idx,\n      point_id: toUuid(fileName + '::' + idx),\n    } });\n    idx++;\n  }\n}\nreturn out;\n"
+      },
+      "id": "087d716e-1031-4139-87d7-8327b456d963",
+      "name": "Chunk Markdown",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: \"text-embedding-3-small\", input: $json.text }) }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi"
+      },
+      "id": "310a2309-5aa7-44cf-bd59-f4341ac8e570",
+      "name": "Embed Chunk",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        280
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const chunk = $('Chunk Markdown').item.json;\nconst vector = $json.data[0].embedding;\nreturn {\n  qdrant_body: {\n    points: [{\n      id: chunk.point_id,\n      vector,\n      payload: {\n        text: chunk.text,\n        source_file: chunk.source_file,\n        heading: chunk.heading,\n        chunk_index: chunk.chunk_index,\n      },\n    }],\n  },\n};\n"
+      },
+      "id": "bf9129ae-1dc0-4578-8b27-2365bb96b443",
+      "name": "Build Qdrant Point",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.QDRANT_URL }}/collections/{{ $env.QDRANT_COLLECTION }}/points?wait=true",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api-key",
+              "value": "={{ $env.QDRANT_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.qdrant_body) }}"
+      },
+      "id": "76b0a1cf-d247-4517-b529-88db2ceb4f38",
+      "name": "Upsert to Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        280
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "df0df688-5026-42c1-aa9f-09ca18517ba9",
+      "name": "Backfill: load whole folder",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1100,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "operation": "search",
+        "returnAll": true,
+        "filter": {
+          "folderId": {
+            "__rl": true,
+            "value": "YOUR_GDRIVE_FOLDER_ID",
+            "mode": "id"
+          },
+          "whatToSearch": "files"
+        },
+        "options": {}
+      },
+      "id": "75049410-bfb2-4dfb-a64e-2f032ae65ac9",
+      "name": "List Files in Folder",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -880,
+        560
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "REPLACE_WITH_YOUR_GOOGLE_DRIVE_CREDENTIAL",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is Markdown File?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Markdown File?": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Chunk Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunk Markdown": {
+      "main": [
+        [
+          {
+            "node": "Embed Chunk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embed Chunk": {
+      "main": [
+        [
+          {
+            "node": "Build Qdrant Point",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Qdrant Point": {
+      "main": [
+        [
+          {
+            "node": "Upsert to Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backfill: load whole folder": {
+      "main": [
+        [
+          {
+            "node": "List Files in Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Files in Folder": {
+      "main": [
+        [
+          {
+            "node": "Is Markdown File?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b62703c6-8751-4e47-ac4c-3d0c7664ad57",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "38d7e4f32c6f4024",
+  "tags": []
+}

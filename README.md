@@ -11,6 +11,7 @@ self-contained with its own README, demo screenshots, and setup guide.
 | 01 | [lead-intake](lead-intake/) | Capture leads from a web form, score them with GPT-4o-mini, alert hot leads to Gmail + Telegram instantly, log all to Google Sheets, send a daily digest at 6pm |
 | 02 | [crm-automation](crm-automation/) | Enrich & score leads against an ICP, route through a Slack human-in-the-loop approval, then auto-create a HubSpot contact + deal and draft a personalised cold outreach email |
 | 03 | [ai-weekly-digest](ai-weekly-digest/) | Pull weekly metrics from Google Sheets, summarise each section with GPT-4o-mini, flag anomalies vs. the prior week, and send an HTML digest to Gmail + Slack every Monday |
+| 04 | [whatsapp-assistant](whatsapp-assistant/) | A WhatsApp agent (Business Cloud API) that answers customer questions 24/7 with retrieval-grounded, memory-aware replies from GPT-4o-mini over a Qdrant knowledge base, **and** captures qualified leads to Google Sheets when a buyer shows intent |
 
 ## Infrastructure
 

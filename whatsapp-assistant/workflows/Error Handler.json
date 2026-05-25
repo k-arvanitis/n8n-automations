@@ -1,0 +1,81 @@
+{
+  "name": "Error Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 🚨 Error Handler\nShared error workflow. Set this as the **Error Workflow** in the settings of\nboth other workflows (Workflow → Settings → Error Workflow).\nOn any failure it emails the workflow name, failing node, and error message\nto `{{ $env.ALERT_EMAIL }}` via Gmail.",
+        "height": 180,
+        "width": 560,
+        "color": 7
+      },
+      "id": "1785a06f-2a39-4b61-86bf-83faa16b9a22",
+      "name": "Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        -40
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "8ef50aa2-7e90-4e54-a566-56bf524b2345",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -620,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $env.ALERT_EMAIL }}",
+        "subject": "=n8n error: {{ $json.workflow?.name }}",
+        "emailType": "text",
+        "message": "=Workflow: {{ $json.workflow?.name }}\nNode: {{ $json.execution?.lastNodeExecuted }}\nError: {{ $json.execution?.error?.message }}\nTime: {{ $now }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "de8f77d1-142a-449f-89c2-e5c1a9f17abc",
+      "name": "Email Alert",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -360,
+        220
+      ],
+      "webhookId": "27e00b20-321c-4117-ba62-51d9fbcd4064",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_YOUR_GMAIL_CREDENTIAL",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Email Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3e68a672-33e0-4bfb-8226-9f687e59bd9b",
+  "meta": {
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "c9ed0636855f44a6",
+  "tags": []
+}
