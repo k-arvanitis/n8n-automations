@@ -246,8 +246,8 @@ Turn on both workflows in n8n (toggle top right), open `form/index.html` in a br
 
 ## Contact
 
-Built by Konstantinos Arvanitis - AI engineer & automation specialist.
+Built by Konstantinos Arvanitis — AI engineer & automation specialist.
 
 - [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/k-arvanitis)
-- [Repo](https://github.com/k-arvanitis/n8n-automations)
+- Email: konstantinos.arvanitis@outlook.com
