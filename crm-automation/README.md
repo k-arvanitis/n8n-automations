@@ -240,6 +240,7 @@ Turn on both workflows in n8n (toggle top right), open `form/index.html` in a br
 - **ngrok URL changes on restart** - every time ngrok restarts, you get a new URL. You need to update `WEBHOOK_URL` in `docker-compose.yml`, restart n8n, and update the Slack Interactivity Request URL. A paid ngrok plan gives you a stable domain.
 - **Apollo.io requires a paid plan for live enrichment** — the People Match API is only on Apollo's Organization plan ($119/month), so the demo ships with mock enrichment data that mirrors the Apollo response shape exactly. Free-tier alternatives that drop straight into the `Apollo Enrichment` HTTP Request node: **[People Data Labs](https://www.peopledatalabs.com/)** (free 100 enrichments/month — Person Enrichment API), **[Hunter.io](https://hunter.io)** (free 25 lookups/month — email-finder + person data), or **[HubSpot Breeze Intelligence](https://www.hubspot.com/products/breeze-intelligence)** (free for HubSpot customers — the ex-Clearbit product). Swap the URL, headers, and the `Format Apollo Data` field mappings; the rest of the pipeline is unchanged.
 - **Slack Interactivity URL must match ngrok** - any time the tunnel restarts, the Slack App settings need to be updated manually.
+- **Running cost.** GPT-4.1-mini handles two calls per approved lead — scoring (~800 tokens) and outreach drafting (~1,200 tokens) — for roughly **$0.0008 per approved lead** (about **$0.80 per 1,000 approved leads**). Rejected leads only pay for the scoring call (~$0.0001 each). Apollo enrichment is free in demo mode (mock data) or via the free-tier alternatives above.
 
 ---
 
@@ -249,3 +250,4 @@ Built by Konstantinos Arvanitis - AI engineer & automation specialist.
 
 - [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/k-arvanitis)
+- [Repo](https://github.com/k-arvanitis/n8n-automations)

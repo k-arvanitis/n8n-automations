@@ -14,6 +14,27 @@
 
 It runs on OpenAI today (`text-embedding-3-small` for retrieval, `gpt-4o-mini` for the agent); the model layer is provider swappable to Groq, Anthropic, Gemini, or a local Ollama model — see [Customizing for your business](#customizing-for-your-business) for the concrete swap.
 
+## One prompt, one business identity
+
+The entire agent — name, tone, what it answers, what counts as buying intent, which lead fields to collect — is controlled by **one system prompt** in the `AI Agent` node. A real estate agency, a clinic, a law firm, and a hotel ship the same workflow with four different prompts. Retrieval, memory, the `save_lead` tool, and the WhatsApp reply path stay identical. See [Customizing for your business](#customizing-for-your-business) for the full list of knobs.
+
+## Quick start — see it work in 5 minutes (no WhatsApp needed)
+
+You can exercise retrieval + the AI Agent + lead capture **without** setting up the WhatsApp Cloud API, by triggering the agent workflow with a mock Meta payload instead of a real message:
+
+1. `docker compose up -d` and import the two main workflows from `workflows/` into n8n at `http://localhost:5678`.
+2. Attach two n8n credentials: **OpenAI** (the embed and chat-model nodes) and **Google Sheets** (the log and `save_lead` nodes). Create the Qdrant collection with the curl in [Qdrant collection setup](#qdrant-collection-setup) and put `QDRANT_URL` + `QDRANT_API_KEY` in `.env`.
+3. Drop one Markdown file from `docs/` into your watched Drive folder — the knowledge base is now in Qdrant.
+4. Open the agent workflow, click **Listen for Test Event** on the `WhatsApp Trigger`, then in your terminal:
+   ```bash
+   curl -X POST <test-webhook-url-from-n8n> \
+     -H "Content-Type: application/json" \
+     -d '{"entry":[{"changes":[{"value":{"messages":[{"from":"306941234567","text":{"body":"Do you have anything in Glyfada?"},"type":"text"}]}}]}]}'
+   ```
+5. Watch the execution: retrieval pulls the Glyfada listing, the `AI Agent` answers, and if the message implies intent, a row lands in the `Leads` sheet. The final `Send Reply` step will fail without WhatsApp creds — expected, and the agent itself has already run end-to-end.
+
+For real WhatsApp messages, finish [Setup](#setup) steps 7 and 11 (Meta webhook wiring) — another ~20 minutes.
+
 ## How it works
 
 Three workflows. Two do the work, one watches for failures.
@@ -236,7 +257,7 @@ This is a template for any business that answers the same questions over and ove
 
 ## Known limitations
 
-- **Demo uses Meta's free test number, which is gated.** The Cloud API test number can message a handful of verified recipients, but after a few sends Meta returns error `131037` ("provided number needs display name approval") until the business completes verification and an approved display name. That is a Meta onboarding step, not a code issue — production uses a registered, verified business number and the n8n logic is identical; only the credential and sender number change.
+- **Demo uses Meta's free test number, which is gated.** The Cloud API test number can message a handful of verified recipients, but after a few sends Meta returns error `131037` ("provided number needs display name approval") until the business completes verification and an approved display name. That is a Meta onboarding step, not a code issue — production uses a registered, verified business number and the n8n logic is identical; only the credential and sender number change. **Because I can't hand a prospect a live test number, I'm happy to record a short walkthrough tailored to your knowledge base and ICP after a 15-minute intro call** — see [Contact](#contact) below.
 - **24-hour service window.** The Cloud API lets a business reply freely for 24 hours after a customer's message. This agent is reactive (it answers inbound questions), so it stays inside that window by design; proactive outreach would need pre-approved message templates.
 - **Lead detection is model judgment.** The agent decides when a message shows buying intent and when it has enough detail to call `save_lead`. It is tuned via the system prompt and works well in testing, but like any LLM-driven trigger it can occasionally capture early or ask one question too many. The dedup-on-phone write means a premature save is corrected, not duplicated, as the conversation continues.
 - **Qdrant free tier limits.** The free cluster allows one collection and roughly 1GB, ample for a document base like this but not for millions of vectors.
@@ -250,3 +271,4 @@ Built by Konstantinos Arvanitis, AI engineer and automation specialist.
 
 - [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/k-arvanitis)
+- [Repo](https://github.com/k-arvanitis/n8n-automations)

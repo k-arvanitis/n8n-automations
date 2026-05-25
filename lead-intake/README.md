@@ -226,6 +226,7 @@ A styled contact form is included in `form/index.html`. Deploy free on GitHub Pa
   system prompt, so quality depends on the prompt and the lead's message; there's no
   historical-conversion learning.
 - **Single timezone for the digest** — the 18:00 summary fires at one fixed time for everyone.
+- **Running cost.** GPT-4o-mini scores each lead in ~600 tokens, costing roughly **$0.0001 per lead** — about **$1 per 10,000 leads**. The daily digest is a Sheets read + HTML build (no LLM call), essentially free. Swap to Ollama locally and the per-lead cost drops to zero.
 
 ## Contact
 
@@ -233,3 +234,4 @@ Built by Konstantinos Arvanitis — AI engineer & automation specialist.
 
 - [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/k-arvanitis)
+- [Repo](https://github.com/k-arvanitis/n8n-automations)

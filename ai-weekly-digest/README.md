@@ -109,21 +109,42 @@ needed; just import the workflow and fill in your credentials.
    - **OpenAI API key** → the two model nodes (`GPT-4o-mini — Sections`, shared by the four
      section summaries, and `GPT-4o-mini — Focus`) — provider is swappable: Anthropic/Groq/
      Gemini/Ollama drop in via n8n's chat-model nodes
-3. Set the five config values. The workflow ships referencing them as `{{ $env.X }}` —
-   pick whichever fits you:
-   - **Option A — paste literals into the nodes:** in the four `Get … Data` nodes set
-     *Document ID* to your spreadsheet ID; in `Send Gmail` set *To* to your email; in
-     `Send Slack` set *Channel* to your channel ID; in `Calculate Metrics` replace
-     `$env.ANOMALY_THRESHOLD` with a number (e.g. `20`). No env vars at all.
-   - **Option B — keep `$env`:** add `GOOGLE_SHEET_ID`, `DIGEST_EMAIL_RECIPIENT`,
-     `SLACK_CHANNEL_ID`, `ANOMALY_THRESHOLD` (and optionally `TIMEZONE` /
-     `GENERIC_TIMEZONE`) to your n8n process's environment. See `.env.example` for the
-     full list and what each one is.
+3. Set the four config values directly in the nodes. The workflow ships with `{{ $env.X }}`
+   placeholders in each field — just paste your literal value over the placeholder:
+   - **Spreadsheet ID** → *Document ID* in the four `Get … Data` nodes
+   - **Recipient email** → *To* in `Send Gmail`
+   - **Slack channel ID** → *Channel* in `Send Slack`
+   - **Anomaly threshold** → replace `$env.ANOMALY_THRESHOLD` with a number (e.g. `20`) in `Calculate Metrics`
+
+   No env vars or `.env` file needed. If you'd rather use env vars instead — for shared n8n
+   instances or CI — see [Appendix: env-var configuration](#appendix-env-var-configuration)
+   at the bottom of this README.
 4. Set the schedule timezone if needed: open the **Every Monday 8 AM** node (or
    *Workflow → Settings → Timezone*) — it defaults to your n8n instance's timezone.
 5. Activate the workflow (toggle, top right).
 6. To test immediately without waiting for Monday: open the **Every Monday 8 AM** node and
    click **Execute step** (or use **Test workflow** from the canvas).
+
+## Empty data & error behavior
+
+What happens when a tab is empty, a header is misspelled, or a row is malformed — useful to
+know during onboarding because clients hit these the first time they run it:
+
+- **A tab has no rows for the current week** → the section renders cleanly: `0 leads`,
+  `0% vs prior`, no anomaly flag, and the AI summary receives `no rows recorded this week`
+  as input. The digest still sends.
+- **Current week has data but the prior week is empty** → the section shows `+100% vs prior`
+  (zero-baseline jump) and is flagged as an anomaly. Not a bug — that *is* the right signal:
+  *"this metric started moving this week."*
+- **A header uses the wrong column name** (e.g. `date` instead of `Date`, `amount` instead
+  of `Amount`) → the affected metric silently reads `0` because `Calculate Metrics` looks up
+  rows by exact column name. No error; the digest renders zeros. If a section is unexpectedly
+  zero, check the headers first.
+- **A tab is missing or renamed** (e.g. `Sales` instead of `Revenue`) → the corresponding
+  `Get … Data` node **fails the run**. Intentional — a missing tab is a config error, not a
+  quiet zero. Fix the tab name and re-run.
+- **An invalid `Date` value in a row** → that row is excluded from its week, the rest of the
+  rows still process. No error.
 
 ## Customization
 
@@ -181,6 +202,25 @@ deals), or an **in-house marketing team** (MQLs, pipeline influenced, campaign s
 - The model writes its summaries only from the data passed to it; it has no external
   context (industry events, your roadmap, holidays).
 - The schedule fires at one fixed time in one timezone — no per-recipient scheduling.
+- **Running cost.** Four section summaries + one focus block run weekly through `gpt-4o-mini` for roughly **$0.005 per digest**, i.e. about **$0.25 per year** at one digest a week. With Ollama running locally the pipeline costs nothing.
+
+## Appendix: env-var configuration
+
+The workflow ships pre-wired with `{{ $env.X }}` placeholders, so if you'd rather keep config
+out of the workflow JSON (handy for shared n8n instances, CI, or multi-environment setups),
+skip step 3 of Setup and instead add these to your n8n process's environment
+(`docker-compose.yml`, `.env`, or your shell):
+
+| Variable | What it sets |
+|---|---|
+| `GOOGLE_SHEET_ID` | Spreadsheet ID for the four `Get … Data` nodes |
+| `DIGEST_EMAIL_RECIPIENT` | *To* address for `Send Gmail` |
+| `SLACK_CHANNEL_ID` | Channel ID for `Send Slack` |
+| `ANOMALY_THRESHOLD` | Percentage threshold used by `Calculate Metrics` (e.g. `20`) |
+| `TIMEZONE` / `GENERIC_TIMEZONE` | Optional — override the schedule's timezone |
+
+See `.env.example` for the full list. With these set, the workflow runs as-is — no node
+edits required.
 
 ## Contact
 
@@ -188,3 +228,4 @@ Built by Konstantinos Arvanitis — AI engineer & automation specialist.
 
 - [LinkedIn](https://www.linkedin.com/in/konstantinos-arvanitis-0248b3246/)
 - [GitHub](https://github.com/k-arvanitis)
+- [Repo](https://github.com/k-arvanitis/n8n-automations)
