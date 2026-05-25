@@ -31,10 +31,11 @@ An end-to-end AI-powered lead qualification and CRM automation pipeline built wi
 ### Workflow 2 - Approval Pipeline
 
 7. **Button click webhook** - Slack sends the interaction payload to a separate n8n webhook (`/hitl-resume`)
-8. **Lead data extraction** - a Code node extracts lead data embedded as a pipe-delimited string in the Slack notification text (this solves cross-workflow data passing since the approval runs in a separate execution context)
+8. **Lead data extraction** - a Code node extracts lead data embedded as a pipe-delimited string in the Slack notification text (this solves cross-workflow data passing since the approval runs in a separate execution context). *Demo simplification — for production, persist the lead to a shared store (Redis / Postgres) keyed by Slack's `callback_id` and look it up on resume.*
 9. **Approved path:**
    - Creates a HubSpot contact (first name, last name, email, job title, company, industry, lead status)
    - Creates a HubSpot deal (deal name, stage, close date, estimated amount)
+   - **Associates the deal with the contact** — calls the HubSpot v4 Associations API (`PUT /crm/v4/objects/deals/{dealId}/associations/default/contacts/{contactId}`) using the IDs returned by the two previous nodes, so the deal appears under the contact in HubSpot and vice-versa
    - Drafts a personalised cold outreach email with GPT-4.1-mini referencing the lead's role, company, and AI key signal
    - Posts the drafted email to Slack for the salesperson to review and send from HubSpot
 10. **Rejected path:** posts a rejection notification to Slack with the lead's score
@@ -83,6 +84,9 @@ Create HubSpot Contact
 Create HubSpot Deal
       │
       ▼
+Associate Deal ↔ Contact (HubSpot v4 Associations API)
+      │
+      ▼
 Draft Outreach Email (GPT-4.1-mini)
       │
       ▼
@@ -128,7 +132,7 @@ Slack Success Notification (with email draft)
 
 ### n8n workflow canvas
 ![n8n workflow](screenshots/n8n-workflow.png)
-*The two pipelines: lead intake (form → enrich → score → Slack HITL) and approval (Slack click → HubSpot contact + deal + outreach draft).*
+*The two pipelines: lead intake (form → enrich → score → Slack HITL) and approval (Slack click → HubSpot contact + deal + association + outreach draft).*
 
 ---
 
@@ -234,8 +238,7 @@ Turn on both workflows in n8n (toggle top right), open `form/index.html` in a br
 ## Known limitations & production considerations
 
 - **ngrok URL changes on restart** - every time ngrok restarts, you get a new URL. You need to update `WEBHOOK_URL` in `docker-compose.yml`, restart n8n, and update the Slack Interactivity Request URL. A paid ngrok plan gives you a stable domain.
-- **Apollo.io requires a paid plan** - the People Match API is only available on the Organization plan ($119/month). This demo uses mock data. [Clearbit](https://clearbit.com) is a viable alternative with a free tier.
-- **HubSpot deal-contact association not automated** - the deal and contact are created as separate objects but not linked, so the deal won't appear under the contact in HubSpot. Linking them is one extra call to the [CRM v4 Associations API](https://developers.hubspot.com/docs/api/crm/associations): `PUT /crm/v4/objects/deals/{dealId}/associations/default/contacts/{contactId}`, passing the IDs returned by the `Create HubSpot Deal` and `Create HubSpot Contact` nodes. Drop it in as an HTTP Request node right after `Create HubSpot Deal` to make the pipeline production-complete.
+- **Apollo.io requires a paid plan for live enrichment** — the People Match API is only on Apollo's Organization plan ($119/month), so the demo ships with mock enrichment data that mirrors the Apollo response shape exactly. Free-tier alternatives that drop straight into the `Apollo Enrichment` HTTP Request node: **[People Data Labs](https://www.peopledatalabs.com/)** (free 100 enrichments/month — Person Enrichment API), **[Hunter.io](https://hunter.io)** (free 25 lookups/month — email-finder + person data), or **[HubSpot Breeze Intelligence](https://www.hubspot.com/products/breeze-intelligence)** (free for HubSpot customers — the ex-Clearbit product). Swap the URL, headers, and the `Format Apollo Data` field mappings; the rest of the pipeline is unchanged.
 - **Slack Interactivity URL must match ngrok** - any time the tunnel restarts, the Slack App settings need to be updated manually.
 
 ---

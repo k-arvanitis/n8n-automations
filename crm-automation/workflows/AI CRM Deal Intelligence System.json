@@ -228,8 +228,8 @@
           "mode": "name"
         },
         "messageType": "block",
-        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*New Lead Requires Review*\\n\\n*Name:* {{ $json.name }}\\n*Email:* {{ $json.email }}\\n*Title:* {{ $json.job_title }}\\n*Company:* {{ $json.company }}\\n*Score:* {{ $json.ai_score }}/100 — {{ $json.ai_grade }}\\n*Recommended:* {{ $json.ai_action }}\\n*Reason:* {{ $json.ai_reason }}\"\n      }\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Approve\", \"emoji\": true },\n          \"style\": \"primary\",\n          \"value\": \"approve\",\n          \"action_id\": \"approve_lead\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Reject\", \"emoji\": true },\n          \"style\": \"danger\",\n          \"value\": \"reject\",\n          \"action_id\": \"reject_lead\"\n        }\n      ]\n    }\n  ]\n}",
-        "text": "==New lead requires approval — {{ $json.name }}|{{ $json.email }}|{{ $json.job_title }}|{{ $json.company }}|{{ $json.industry }}|{{ $json.company_size }}|{{ $json.ai_score }}|{{ $json.ai_grade }}|{{ $json.ai_action }}|{{ $json.ai_reason }}|{{ $json.ai_signal }}",
+        "blocksUi": "={\n  \"blocks\": [\n    {\n      \"type\": \"section\",\n      \"text\": {\n        \"type\": \"mrkdwn\",\n        \"text\": \"*New Lead Requires Review*\\n\\n*Name:* {{ $json.name }}\\n*Email:* {{ $json.email }}\\n*Title:* {{ $json.job_title }}\\n*Company:* {{ $json.company }}\\n*Score:* {{ $json.ai_score }}/100 \u2014 {{ $json.ai_grade }}\\n*Recommended:* {{ $json.ai_action }}\\n*Reason:* {{ $json.ai_reason }}\"\n      }\n    },\n    {\n      \"type\": \"divider\"\n    },\n    {\n      \"type\": \"actions\",\n      \"elements\": [\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Approve\", \"emoji\": true },\n          \"style\": \"primary\",\n          \"value\": \"approve\",\n          \"action_id\": \"approve_lead\"\n        },\n        {\n          \"type\": \"button\",\n          \"text\": { \"type\": \"plain_text\", \"text\": \"Reject\", \"emoji\": true },\n          \"style\": \"danger\",\n          \"value\": \"reject\",\n          \"action_id\": \"reject_lead\"\n        }\n      ]\n    }\n  ]\n}",
+        "text": "==New lead requires approval \u2014 {{ $json.name }}|{{ $json.email }}|{{ $json.job_title }}|{{ $json.company }}|{{ $json.industry }}|{{ $json.company_size }}|{{ $json.ai_score }}|{{ $json.ai_grade }}|{{ $json.ai_action }}|{{ $json.ai_reason }}|{{ $json.ai_signal }}",
         "otherOptions": {}
       },
       "id": "28f08f76-ab36-4faa-9c04-9cd6daef9cc8",
@@ -266,7 +266,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json.body.payload;\nconst payload = JSON.parse(raw);\nconst action = payload.actions[0].value;\n\nconst text = payload.message.text || '';\nconst dataLine = text.split(' — ')[1] || '';\nconst parts = dataLine.trim().split('|');\n\nreturn [{\n  json: {\n    action,\n    name: parts[0] || '',\n    email: parts[1] || '',\n    job_title: parts[2] || '',\n    company: parts[3] || '',\n    industry: parts[4] || '',\n    company_size: parts[5] || '',\n    ai_score: parseInt(parts[6]) || 0,\n    ai_grade: parts[7] || '',\n    ai_action: parts[8] || '',\n    ai_reason: parts[9] || '',\n    ai_signal: parts[10] || ''\n  }\n}];"
+        "jsCode": "const raw = $input.first().json.body.payload;\nconst payload = JSON.parse(raw);\nconst action = payload.actions[0].value;\n\nconst text = payload.message.text || '';\nconst dataLine = text.split(' \u2014 ')[1] || '';\nconst parts = dataLine.trim().split('|');\n\nreturn [{\n  json: {\n    action,\n    name: parts[0] || '',\n    email: parts[1] || '',\n    job_title: parts[2] || '',\n    company: parts[3] || '',\n    industry: parts[4] || '',\n    company_size: parts[5] || '',\n    ai_score: parseInt(parts[6]) || 0,\n    ai_grade: parts[7] || '',\n    ai_action: parts[8] || '',\n    ai_reason: parts[9] || '',\n    ai_signal: parts[10] || ''\n  }\n}];"
       },
       "id": "76e18c98-1c0f-4c61-bb0e-a31930af75c7",
       "name": "Parse Slack Payload",
@@ -370,7 +370,7 @@
               },
               {
                 "property": "=dealname",
-                "value": "={{ $('Parse Slack Payload').first().json.company }} — Inbound Lead"
+                "value": "={{ $('Parse Slack Payload').first().json.company }} \u2014 Inbound Lead"
               },
               {
                 "property": "=pipeline",
@@ -386,6 +386,37 @@
       "typeVersion": 2,
       "position": [
         464,
+        480
+      ],
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "REPLACE_WITH_YOUR_HUBSPOT_CREDENTIAL",
+          "name": "HubSpot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://api.hubapi.com/crm/v4/objects/deals/{{ $json.id }}/associations/default/contacts/{{ $('Create HubSpot Contact').item.json.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "hubspotAppToken",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Associate Deal With Contact",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        688,
         480
       ],
       "credentials": {
@@ -421,7 +452,7 @@
       "type": "@n8n/n8n-nodes-langchain.openAi",
       "typeVersion": 1,
       "position": [
-        688,
+        912,
         480
       ],
       "credentials": {
@@ -439,7 +470,7 @@
           "__rl": true,
           "mode": "name"
         },
-        "text": "=✅ *{{ $('Parse Slack Payload').first().json.name }}* pushed to HubSpot\n\n*Company:* {{ $('Parse Slack Payload').first().json.company }}\n*Score:* {{ $('Parse Slack Payload').first().json.ai_score }}/100 — {{ $('Parse Slack Payload').first().json.ai_grade }}\n*Deal:* Qualified to Buy\n\n---\n*Outreach email ready to send:*\n\n{{ $('Draft Outreach Email').first().json.message.content }}",
+        "text": "=\u2705 *{{ $('Parse Slack Payload').first().json.name }}* pushed to HubSpot\n\n*Company:* {{ $('Parse Slack Payload').first().json.company }}\n*Score:* {{ $('Parse Slack Payload').first().json.ai_score }}/100 \u2014 {{ $('Parse Slack Payload').first().json.ai_grade }}\n*Deal:* Qualified to Buy\n\n---\n*Outreach email ready to send:*\n\n{{ $('Draft Outreach Email').first().json.message.content }}",
         "otherOptions": {}
       },
       "id": "e9f28209-114c-4a30-8a21-865f0840a178",
@@ -447,7 +478,7 @@
       "type": "n8n-nodes-base.slack",
       "typeVersion": 2,
       "position": [
-        992,
+        1216,
         480
       ],
       "webhookId": "ac235164-e602-43f4-bce7-389ab79009e3",
@@ -466,7 +497,7 @@
           "__rl": true,
           "mode": "name"
         },
-        "text": "=❌ *Lead rejected and archived.*\n\n*Lead:* {{ $json.name }} ({{ $json.email }})\n*AI Score was:* {{ $json.ai_score }}/100\n\nNo CRM record created.",
+        "text": "=\u274c *Lead rejected and archived.*\n\n*Lead:* {{ $json.name }} ({{ $json.email }})\n*AI Score was:* {{ $json.ai_score }}/100\n\nNo CRM record created.",
         "otherOptions": {}
       },
       "id": "48dc97a6-4b61-43bf-aee1-9fe5333eb464",
@@ -647,7 +678,7 @@
       "main": [
         [
           {
-            "node": "Draft Outreach Email",
+            "node": "Associate Deal With Contact",
             "type": "main",
             "index": 0
           }
@@ -659,6 +690,17 @@
         [
           {
             "node": "Slack Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Associate Deal With Contact": {
+      "main": [
+        [
+          {
+            "node": "Draft Outreach Email",
             "type": "main",
             "index": 0
           }
