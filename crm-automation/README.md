@@ -108,21 +108,27 @@ Slack Success Notification (with email draft)
 
 ### Lead intake form
 ![Lead intake form](screenshots/lead-intake-form.png)
+*Branded HTML/CSS form (Nexus Agency demo) — posts to the n8n webhook on submit.*
 
 ### Slack approval message with Approve / Reject buttons
 ![Slack approval](screenshots/slack-approval-message.png)
+*Block Kit message with the AI score, grade, reason, and key signal — Approve / Reject resume the pipeline in a second workflow.*
 
 ### Slack success notification with AI-drafted outreach email
 ![Slack success](screenshots/slack-success-notification.png)
+*Post-approval: the personalised cold email drafted by GPT-4.1-mini, posted to Slack for the salesperson to review and send from HubSpot.*
 
 ### HubSpot contacts - auto-created on approval
 ![HubSpot contacts](screenshots/hubspot-contacts.png)
+*Contact created automatically on approval with first name, last name, email, job title, company, industry, and lead status.*
 
 ### HubSpot deals - inbound deals created automatically
 ![HubSpot deals](screenshots/hubspot-deals.png)
+*Deal created in the same step with name, stage, close date, and estimated amount — ready for the rep to advance.*
 
 ### n8n workflow canvas
 ![n8n workflow](screenshots/n8n-workflow.png)
+*The two pipelines: lead intake (form → enrich → score → Slack HITL) and approval (Slack click → HubSpot contact + deal + outreach draft).*
 
 ---
 
@@ -212,6 +218,16 @@ const WEBHOOK_URL = 'https://abc123.ngrok-free.app/webhook/lead-intake';
 ### 9. Activate
 
 Turn on both workflows in n8n (toggle top right), open `form/index.html` in a browser, and submit a test lead.
+
+---
+
+## Customization
+
+**Swap the LLM provider.** Two model nodes use GPT-4.1-mini — `AI Lead Scoring` and `Draft Outreach Email`. To swap, delete each **OpenAI Chat Model**, drop in a **Groq Chat Model** node, set the model to `llama-3.3-70b-versatile`, attach a Groq credential, and reconnect it to its chain. Anthropic, Gemini, and Ollama work the same way — only the model nodes change; the rest of the pipeline (enrich → score → Slack HITL → HubSpot + outreach) is untouched.
+
+**Tune the ICP.** The scoring rules live in the `AI Lead Scoring` system prompt — VP-level or above, SaaS/tech industry, 50-500 employees, US or EU. Edit them to match your business: for an agency, *"creative director or marketing lead at brands above $5M revenue"*; for a law firm, *"GC or VP Legal at mid-market companies in regulated industries"*. Same node, no other change.
+
+**Route approvals to a different channel.** The Slack node posts to `#crm-leads` today. Change the channel in the Slack node, or duplicate the node and post to multiple channels (one per rep, one per region) — the rest of the workflow is unchanged.
 
 ---
 

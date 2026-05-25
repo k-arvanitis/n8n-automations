@@ -1,8 +1,21 @@
 # n8n Automations
 
+![Last commit](https://img.shields.io/github/last-commit/k-arvanitis/n8n-automations)
+![Repo size](https://img.shields.io/github/repo-size/k-arvanitis/n8n-automations)
+![n8n](https://img.shields.io/badge/n8n-self--hosted-orange?logo=n8n)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o--mini-412991?logo=openai)
+![Docker](https://img.shields.io/badge/Docker-self--hosted-2496ED?logo=docker)
+
 Production-style **n8n automation workflows** for real business processes — AI lead scoring,
-a CRM pipeline with human-in-the-loop approval, and automated weekly reporting. Each project is
-self-contained with its own README, demo screenshots, and setup guide.
+a CRM pipeline with human-in-the-loop approval, automated weekly reporting, and a
+WhatsApp RAG + lead-gen agent. Each project is self-contained with its own README, demo
+screenshots, and setup guide.
+
+<p align="center">
+  <img src="whatsapp-assistant/screenshots/whatsapp-conversation.png" alt="WhatsApp RAG and lead-gen agent — live demo" width="320" />
+  <br/>
+  <em>Project 04 in action: the WhatsApp agent answers grounded support questions, then qualifies and captures a buying lead in the same thread.</em>
+</p>
 
 ## Automations
 

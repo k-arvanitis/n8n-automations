@@ -10,7 +10,9 @@
 
 **A WhatsApp agent that does two jobs at once: it answers customers and it captures leads.** A real estate agency gets the same 30 questions every week — Golden Visa threshold, mortgages for foreigners, transfer tax, what's available in Glyfada — and it also gets buyers who are ready to act. This agent answers the questions instantly, 24/7, grounded in the agency's own documents, **and** when a customer shows buying intent it collects their details and drops a qualified lead straight into the agency's sheet. One conversation flows naturally between the two.
 
-> **Why it matters:** the bot does the work of a front desk *and* a lead catcher. On the support side it deflects the repetitive questions so agents spend their time on viewings, not on copy-pasting the same fee breakdown — and because every answer is retrieved from the agency's own documents, it never invents a price or a legal detail. On the sales side it does what an FAQ bot never could: it recognises a hot buyer at 11pm, qualifies them (name, budget, area, property), and logs the lead before it goes cold. Answering questions is table stakes; **capturing the lead is the revenue.** It runs on OpenAI (`text-embedding-3-small` for retrieval, `gpt-4o-mini` for the agent), and the model layer is provider swappable: Groq, Anthropic, or a local Ollama model drop straight in if a client wants cheaper, faster, or fully local inference.
+> **Why it matters:** the bot does the work of a front desk *and* a lead catcher. On the support side it deflects the repetitive questions so agents spend their time on viewings, not on copy-pasting the same fee breakdown — and because every answer is retrieved from the agency's own documents, it never invents a price or a legal detail. On the sales side it does what an FAQ bot never could: it recognises a hot buyer at 11pm, qualifies them (name, budget, area, property), and logs the lead before it goes cold. Answering questions is table stakes; **capturing the lead is the revenue.**
+
+It runs on OpenAI today (`text-embedding-3-small` for retrieval, `gpt-4o-mini` for the agent); the model layer is provider swappable to Groq, Anthropic, Gemini, or a local Ollama model — see [Customizing for your business](#customizing-for-your-business) for the concrete swap.
 
 ## How it works
 
@@ -230,6 +232,7 @@ This is a template for any business that answers the same questions over and ove
 - **Tune memory.** The `Window Buffer Memory` node keeps the last 10 turns per sender. Raise it for longer context at a higher token cost, or lower it to keep replies cheap and focused.
 - **Route leads further.** The `save_lead` tool writes to a sheet today. Point it at HubSpot/Pipedrive, or add a parallel Gmail/Telegram node, to alert a human agent the instant a hot lead is captured (the same pattern as the lead-intake project in this repo).
 - **Add PDF support.** The ingestion pipeline reads Markdown today. To accept PDFs, route the download through n8n's Extract from File node in PDF mode before the chunker.
+- **Swap the LLM provider.** In the agent workflow, delete the **OpenAI Chat Model** sub-node feeding the `AI Agent` and drop in the **Groq Chat Model** node instead, set the model to `llama-3.3-70b-versatile`, attach a Groq credential, and reconnect it to the agent. Anthropic, Gemini, and Ollama work the same way — only the model node changes; retrieval, memory, the `save_lead` tool, and the WhatsApp reply path stay identical. Run it locally with Ollama and the agent's per-reply cost drops to zero.
 
 ## Known limitations
 

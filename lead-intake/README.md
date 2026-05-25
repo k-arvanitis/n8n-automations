@@ -171,6 +171,10 @@ For example a law firm might add:
 Grade A also if: mentions "urgent", "court date", "contract", "deadline"
 ```
 
+## Swapping the LLM provider
+
+The scoring chain uses one **OpenAI Chat Model** node. To swap providers, delete it and drop in a **Groq Chat Model** node, set the model to `llama-3.3-70b-versatile`, attach a Groq credential, and reconnect it to the scoring step. Anthropic, Gemini, and Ollama work the same way — only the model node changes; the rest of the pipeline (webhook → normalize → score → route → Gmail + Telegram + Sheets) is untouched. Run it locally with Ollama and the scoring step costs nothing.
+
 ## Testing without the form
 
 Send a test POST directly with curl:
